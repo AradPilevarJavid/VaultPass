@@ -1,0 +1,26 @@
+# Core data files (CRITICAL: Do not leak your passwords/keys)
+master.json
+passwords.json
+*.db
+*.sqlite3
+
+# Python environment and cache
+Cs50P_Project_venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Personal notes and scratchpad
+notes.txt
+
+# IDEs and System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Distribution
+dist/
+build/
+*.egg-info/
