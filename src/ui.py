@@ -6,25 +6,23 @@ from core import (
     check_passwd_strength,
 )
 
-# ------------------------------------------------------------------------
-#  INITIALIZATION
-# ------------------------------------------------------------------------
 pygame.init()
 
 
-BG_DEEP = (24, 24, 38)           # main background
-BG_CARD = (36, 36, 54)           # card / container
-FG_WHITE = (230, 230, 240)       # primary text
-FG_DIM = (140, 140, 160)         # placeholder / secondary text
-ACCENT_BLUE = (100, 140, 255)    # interactive elements
-ACCENT_HOVER = (130, 165, 255)   # hover state
-RED = (255, 70, 85)              # errors / delete
-GREEN = (80, 200, 120)           # success
-YELLOW = (255, 200, 50)          # warnings
+BG_DEEP = (24, 24, 38)
+BG_CARD = (36, 36, 54)
+FG_WHITE = (230, 230, 240)
+FG_DIM = (140, 140, 160)
+ACCENT_BLUE = (100, 140, 255)
+ACCENT_HOVER = (130, 165, 255)
+RED = (255, 70, 85)
+GREEN = (80, 200, 120)
+YELLOW = (255, 200, 50)
 WHITE = (255, 255, 255)
 
 WIDTH, HEIGHT = 900, 650
 FPS = 30
+
 
 def get_font(size, bold=False):
     name = "Segoe UI" if sys.platform == "win32" else "Arial"
@@ -33,17 +31,15 @@ def get_font(size, bold=False):
     except Exception:
         return pygame.font.Font(None, size)
 
+
 FONT_TITLE = get_font(36, bold=True)
 FONT_HEADING = get_font(24, bold=True)
 FONT_BODY = get_font(18)
 FONT_SMALL = get_font(14)
 FONT_MONO = pygame.font.SysFont("Consolas", 18) if sys.platform == "win32" else get_font(18)
 
-# ------------------------------------------------------------------------
-#  REUSABLE UI COMPONENTS
-# ------------------------------------------------------------------------
+
 class TextInput:
-    """A styled text input field with placeholder, cursor blink and active highlight."""
     def __init__(self, x, y, w, h, placeholder="", password=False):
         self.rect = pygame.Rect(x, y, w, h)
         self.text = ""
@@ -72,9 +68,7 @@ class TextInput:
         else:
             self.cursor_visible = False
 
-
     def draw(self, surface):
-        # Background
         color = BG_CARD if not self.active else (50, 50, 70)
         pygame.draw.rect(surface, color, self.rect, border_radius=8)
         pygame.draw.rect(surface, ACCENT_BLUE if self.active else FG_DIM, self.rect, 2, border_radius=8)
@@ -90,7 +84,6 @@ class TextInput:
         clip = surface.get_clip()
         surface.set_clip(self.rect)
         surface.blit(text_surf, (self.rect.x + 8, self.rect.y + (self.rect.h - text_surf.get_height()) // 2))
-        # Cursor
         if self.active and self.cursor_visible and self.text:
             cursor_x = self.rect.x + 8 + FONT_BODY.size(display)[0]
             pygame.draw.line(surface, FG_WHITE,
@@ -107,7 +100,6 @@ class TextInput:
 
 
 class Button:
-    """A rounded button with hover/click effects."""
     def __init__(self, x, y, w, h, text, color=ACCENT_BLUE, text_color=WHITE, callback=None):
         self.rect = pygame.Rect(x, y, w, h)
         self.text = text
@@ -135,7 +127,6 @@ class Button:
         y = self.rect.y + (self.rect.height - h) // 2
         color = self.hover_color if self.hover else self.color
         pygame.draw.rect(surface, color, (x, y, w, h), border_radius=10)
-        # Text
         text_surf = FONT_BODY.render(self.text, True, self.text_color)
         surface.blit(text_surf, (x + (w - text_surf.get_width()) // 2,
                                  y + (h - text_surf.get_height()) // 2))
@@ -145,10 +136,9 @@ class Button:
 
 
 class Slider:
-    """Horizontal slider for password length."""
     def __init__(self, x, y, w, min_val=4, max_val=32, init_val=16):
-        self.rect = pygame.Rect(x, y, w, 16)          # track area
-        self.handle_rect = pygame.Rect(0, 0, 20, 28)  # handle size
+        self.rect = pygame.Rect(x, y, w, 16)
+        self.handle_rect = pygame.Rect(0, 0, 20, 28)
         self.min = min_val
         self.max = max_val
         self.value = init_val
@@ -166,7 +156,6 @@ class Slider:
             if self.handle_rect.collidepoint(event.pos):
                 self.dragging = True
             elif self.rect.collidepoint(event.pos):
-                # Jump to click position
                 self.dragging = True
                 self._set_from_mouse(event.pos[0])
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -182,24 +171,19 @@ class Slider:
         self.update_handle_pos()
 
     def draw(self, surface):
-        # Track
         pygame.draw.rect(surface, BG_CARD, self.rect, border_radius=8)
-        # Filled portion
         filled_w = int(self.rect.width * (self.value - self.min) / (self.max - self.min))
         if filled_w > 0:
             fill_rect = pygame.Rect(self.rect.x, self.rect.y, filled_w, self.rect.height)
             pygame.draw.rect(surface, ACCENT_BLUE, fill_rect, border_radius=8)
-        # Handle
         handle_color = ACCENT_HOVER if self.dragging else ACCENT_BLUE
         pygame.draw.rect(surface, handle_color, self.handle_rect, border_radius=6)
         pygame.draw.rect(surface, WHITE, self.handle_rect, 2, border_radius=6)
-        # Value label
         label = FONT_SMALL.render(f"{self.value}", True, FG_WHITE)
         surface.blit(label, (self.rect.x + self.rect.width + 12, self.rect.y - 4))
 
 
 class StrengthMeter:
-    """Visual bar that changes colour from red to green."""
     def __init__(self, x, y, w, h):
         self.rect = pygame.Rect(x, y, w, h)
         self.percentage = 0
@@ -208,12 +192,9 @@ class StrengthMeter:
         self.percentage = max(0, min(100, percent))
 
     def draw(self, surface):
-        # Background
         pygame.draw.rect(surface, BG_CARD, self.rect, border_radius=4)
-        # Filled
         if self.percentage > 0:
             fill_w = int(self.rect.width * self.percentage / 100)
-            # Colour interpolation red -> yellow -> green
             if self.percentage < 50:
                 r = 255
                 g = int(255 * (self.percentage / 50))
@@ -223,12 +204,10 @@ class StrengthMeter:
             color = (r, g, 50)
             fill_rect = pygame.Rect(self.rect.x, self.rect.y, fill_w, self.rect.height)
             pygame.draw.rect(surface, color, fill_rect, border_radius=4)
-        # Border
         pygame.draw.rect(surface, FG_DIM, self.rect, 1, border_radius=4)
 
 
 class ScrollableList:
-    """A scrollable area with service:password entries."""
     def __init__(self, x, y, w, h, item_height=35):
         self.rect = pygame.Rect(x, y, w, h)
         self.items = []
@@ -314,54 +293,86 @@ class ScrollableList:
             pygame.draw.rect(surface, FG_DIM, bar_rect, border_radius=4)
 
 
-# ------------------------------------------------------------------------
-#  MAIN APPLICATION CLASS
-# ------------------------------------------------------------------------
+class SelectableList(ScrollableList):
+    def __init__(self, x, y, w, h, item_height=40):
+        super().__init__(x, y, w, h, item_height)
+        self.selected_index = -1
+
+    def handle_event(self, event):
+        super().handle_event(event)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                rel_y = event.pos[1] - self.rect.y + self.scroll
+                index = rel_y // self.item_height
+                if 0 <= index < len(self.items):
+                    self.selected_index = index
+
+    def get_selected_item(self):
+        if 0 <= self.selected_index < len(self.items):
+            return self.items[self.selected_index]
+        return None
+
+    def draw(self, surface):
+        pygame.draw.rect(surface, BG_CARD, self.rect, border_radius=8)
+        old_clip = surface.get_clip()
+        surface.set_clip(self.rect)
+        mouse_pos = pygame.mouse.get_pos()
+        for i, item in enumerate(self.items):
+            y = self.rect.y + i * self.item_height - self.scroll
+            if y + self.item_height < self.rect.y or y > self.rect.bottom:
+                continue
+            row_rect = pygame.Rect(self.rect.x, y, self.rect.width, self.item_height)
+            if i == self.selected_index:
+                color = (60, 80, 150)
+            elif row_rect.collidepoint(mouse_pos):
+                color = (50, 50, 75)
+            else:
+                color = BG_DEEP if i % 2 == 0 else BG_CARD
+            pygame.draw.rect(surface, color, row_rect)
+            txt = FONT_BODY.render(item, True, FG_WHITE)
+            surface.blit(txt, (self.rect.x + 15, y + (self.item_height - txt.get_height()) // 2))
+        surface.set_clip(old_clip)
+        total_h = len(self.items) * self.item_height
+        if total_h > self.rect.height:
+            bar_rect = self._scrollbar_rect()
+            pygame.draw.rect(surface, FG_DIM, bar_rect, border_radius=4)
+
+
 class PasswordManagerApp:
-    """Modern Pygame GUI for the password manager. Receives an already
-       authenticated vault when launched from project.py, but for UX
-       purposes it shows its own login screen (ignoring the passed vault)."""
     def __init__(self, vault=None):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption(" VaultPass")
         self.clock = pygame.time.Clock()
         self.running = True
-
-        # Authentication state
         self.vault = None
         self.state = "LOGIN"
         self.message = ""
         self.message_timer = 0
+        self.message_color = FG_WHITE
 
-        # --- Shared widgets (built once) ---
-        # Login / Setup
         self.master_input = TextInput(WIDTH//2 - 150, 280, 300, 40, "Master Password", password=True)
         self.confirm_input = TextInput(WIDTH//2 - 150, 340, 300, 40, "Confirm Password", password=True)
         self.login_btn = Button(WIDTH//2 - 75, 400, 150, 40, "Login", callback=self.do_login)
         self.setup_btn = Button(WIDTH//2 - 75, 400, 150, 40, "Create Vault", callback=self.do_setup)
+        self.create_shortcut_btn = Button(WIDTH//2 - 75, 440, 150, 40, "Create Vault", color=BG_CARD, text_color=ACCENT_BLUE, callback=lambda: self.goto("SETUP"))
 
-        # Main dashboard
         self.add_btn = Button(WIDTH//2 - 120, 180, 240, 50, "Add Password", callback=lambda: self.goto("ADD"))
         self.view_btn = Button(WIDTH//2 - 120, 250, 240, 50, "View Passwords", callback=lambda: self.goto("VIEW"))
         self.del_btn = Button(WIDTH//2 - 120, 320, 240, 50, "Delete Password", callback=lambda: self.goto("DELETE"))
         self.gen_btn = Button(WIDTH//2 - 120, 390, 240, 50, "Generate Password", callback=lambda: self.goto("GENERATE"))
         self.quit_btn = Button(WIDTH//2 - 120, 480, 240, 50, "Quit", color=RED, callback=self.quit)
 
-        # Add screen
         self.add_service = TextInput(100, 180, 320, 40, "Service name")
         self.add_password = TextInput(100, 250, 320, 40, "Password", password=True)
         self.add_save = Button(100, 320, 140, 40, "Save", callback=self.do_add)
         self.add_back = Button(260, 320, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
-        # View screen
         self.view_list = ScrollableList(50, 120, 800, 420)
         self.view_back = Button(50, 570, 120, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
-        # Delete screen
-        self.del_service = TextInput(100, 220, 320, 40, "Service to delete")
-        self.del_confirm = Button(100, 290, 140, 40, "Delete", color=RED, callback=self.do_delete)
-        self.del_back = Button(260, 290, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
-
+        self.del_list = SelectableList(100, 160, 400, 300)
+        self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
+        self.del_back = Button(260, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
         self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
         self.gen_display = ""
@@ -375,6 +386,8 @@ class PasswordManagerApp:
         self.message = ""
         if state == "VIEW":
             self.refresh_view()
+        elif state == "DELETE":
+            self.refresh_delete_list()
         elif state == "GENERATE":
             self.gen_display = ""
             self.strength_meter.set_value(0)
@@ -422,97 +435,90 @@ class PasswordManagerApp:
         try:
             pwds = self.vault.load_passwords()
             items = [f"{s}: {p}" for s, p in pwds.items()]
-            if not items:
-                items = ["(empty)"]
-            self.view_list.set_items(items)
-        except Exception as e:
-            self.set_message(f"Error: {e}", RED)
+            self.view_list.set_items(items if items else ["(empty)"])
+        except Exception:
             self.view_list.set_items([])
 
+    def refresh_delete_list(self):
+        try:
+            pwds = self.vault.load_passwords()
+            self.del_list.set_items(list(pwds.keys()))
+            self.del_list.selected_index = -1
+        except Exception:
+            self.del_list.set_items([])
+
     def do_delete(self):
-        service = self.del_service.get_text().strip()
+        service = self.del_list.get_selected_item()
         if not service:
-            self.set_message("Enter a service name", RED)
+            self.set_message("Select a service from the list", YELLOW)
             return
         if self.vault.delete_password(service):
             self.set_message(f"Deleted '{service}'", GREEN)
-            self.del_service.clear()
+            self.refresh_delete_list()
         else:
-            self.set_message("Service not found", RED)
+            self.set_message("Error deleting service", RED)
 
     def do_generate(self):
-        length = self.slider.value
-        pwd = generate_passwd(length)
-        self.gen_display = pwd
-        strength = check_passwd_strength(pwd)
-        self.strength_meter.set_value(strength)
+        self.gen_display = generate_passwd(self.slider.value)
+        self.strength_meter.set_value(check_passwd_strength(self.gen_display))
 
     def do_save_generated(self):
         if not self.gen_display:
             return
-        # Go to ADD screen with password pre-filled
         self.state = "ADD"
         self.add_service.clear()
         self.add_password.text = self.gen_display
-        self.add_password.active = False  # so it's visible
+        self.add_password.active = False
 
     def set_message(self, msg, color=FG_WHITE):
         self.message = msg
         self.message_color = color
-        self.message_timer = 120  # 2 seconds at 60 FPS? actually using clock.tick(30) -> 4 seconds
+        self.message_timer = 90
 
     def quit(self):
         self.running = False
 
-    # ---------- main loop ----------
     def run(self):
         while self.running:
-            dt = self.clock.tick(FPS)
+            self.clock.tick(FPS)
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
-                # Handle global events per state
                 if self.state in ("LOGIN", "SETUP"):
                     self.master_input.handle_event(event)
                     if self.state == "SETUP":
                         self.confirm_input.handle_event(event)
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-                        if self.state == "LOGIN":
-                            self.do_login()
-                        else:
-                            self.do_setup()
+                        self.do_login() if self.state == "LOGIN" else self.do_setup()
                 elif self.state == "ADD":
                     self.add_service.handle_event(event)
                     self.add_password.handle_event(event)
                 elif self.state == "DELETE":
-                    self.del_service.handle_event(event)
+                    self.del_list.handle_event(event)
                 elif self.state == "GENERATE":
                     self.slider.handle_event(event)
                 elif self.state == "VIEW":
                     self.view_list.handle_event(event)
-
-                # Buttons handle themselves
                 for btn in self._state_buttons():
                     btn.handle_event(event)
-
-            # Decrease message timer
             if self.message_timer > 0:
                 self.message_timer -= 1
                 if self.message_timer == 0:
                     self.message = ""
-
-            # Drawing
             self.draw()
             pygame.display.flip()
-
         pygame.quit()
         sys.exit()
 
     def _state_buttons(self):
-        """Return list of buttons active in current state."""
-        if self.state in ("LOGIN", "SETUP"):
-            return [self.login_btn] if self.state == "LOGIN" else [self.setup_btn]
+        if self.state == "LOGIN":
+            btns = [self.login_btn]
+            if not Vault.is_master_created():
+                btns.append(self.create_shortcut_btn)
+            return btns
+        if self.state == "SETUP":
+            return [self.setup_btn]
         if self.state == "MAIN":
             return [self.add_btn, self.view_btn, self.del_btn, self.gen_btn, self.quit_btn]
         if self.state == "ADD":
@@ -527,103 +533,68 @@ class PasswordManagerApp:
 
     def draw(self):
         self.screen.fill(BG_DEEP)
-
-        # ---- Title bar ----
         title = FONT_TITLE.render(" VaultPass", True, ACCENT_BLUE)
         self.screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
 
-        # ---- State-specific drawing ----
         if self.state in ("LOGIN", "SETUP"):
-            # Card background
-            card_rect = pygame.Rect(WIDTH//2 - 200, 200, 400, 280)
-            pygame.draw.rect(self.screen, BG_CARD, card_rect, border_radius=16)
-            # Subtitle
-            sub = "Enter your master password" if self.state == "LOGIN" else "Create a new master password"
+            pygame.draw.rect(self.screen, BG_CARD, (WIDTH//2 - 200, 200, 400, 280 if self.state == "SETUP" else 300), border_radius=16)
+            sub = "Enter master password" if self.state == "LOGIN" else "Create master password"
             sub_text = FONT_HEADING.render(sub, True, FG_WHITE)
             self.screen.blit(sub_text, (WIDTH//2 - sub_text.get_width()//2, 210))
-            # Inputs
             self.master_input.draw(self.screen)
             if self.state == "SETUP":
                 self.confirm_input.draw(self.screen)
-            # Button
             if self.state == "LOGIN":
                 self.login_btn.draw(self.screen)
-                # Show a hint if no vault exists
                 if not Vault.is_master_created():
-                    hint = FONT_SMALL.render("No vault found. Click 'Create Vault' below.", True, FG_DIM)
+                    hint = FONT_SMALL.render("No vault found.", True, FG_DIM)
                     self.screen.blit(hint, (WIDTH//2 - hint.get_width()//2, 460))
-                    # Additional button for setup
-                    setup_btn = Button(WIDTH//2 - 75, 440, 150, 40, "Create Vault", color=BG_CARD, text_color=ACCENT_BLUE, callback=lambda: self.goto("SETUP"))
-                    setup_btn.handle_event(pygame.event.Event(pygame.NOEVENT))
-                    setup_btn.draw(self.screen)
-                    # Dirty: add to state_buttons? We'll just draw it here.
+                    self.create_shortcut_btn.draw(self.screen)
             else:
                 self.setup_btn.draw(self.screen)
 
         elif self.state == "MAIN":
-            # Center the buttons
-            self.add_btn.draw(self.screen)
-            self.view_btn.draw(self.screen)
-            self.del_btn.draw(self.screen)
-            self.gen_btn.draw(self.screen)
-            self.quit_btn.draw(self.screen)
+            for b in [self.add_btn, self.view_btn, self.del_btn, self.gen_btn, self.quit_btn]:
+                b.draw(self.screen)
 
         elif self.state == "ADD":
-            heading = FONT_HEADING.render("Add New Password", True, FG_WHITE)
-            self.screen.blit(heading, (100, 120))
+            self.screen.blit(FONT_HEADING.render("Add New Password", True, FG_WHITE), (100, 120))
             self.add_service.draw(self.screen)
             self.add_password.draw(self.screen)
             self.add_save.draw(self.screen)
             self.add_back.draw(self.screen)
 
         elif self.state == "VIEW":
-            heading = FONT_HEADING.render("Stored Passwords", True, FG_WHITE)
-            self.screen.blit(heading, (50, 80))
+            self.screen.blit(FONT_HEADING.render("Stored Passwords", True, FG_WHITE), (50, 80))
             self.view_list.draw(self.screen)
             self.view_back.draw(self.screen)
 
         elif self.state == "DELETE":
-            heading = FONT_HEADING.render("Delete a Password", True, FG_WHITE)
-            self.screen.blit(heading, (100, 160))
-            self.del_service.draw(self.screen)
+            self.screen.blit(FONT_HEADING.render("Select Service to Delete", True, FG_WHITE), (100, 110))
+            self.del_list.draw(self.screen)
             self.del_confirm.draw(self.screen)
             self.del_back.draw(self.screen)
 
         elif self.state == "GENERATE":
-            heading = FONT_HEADING.render("Generate Secure Password", True, FG_WHITE)
-            self.screen.blit(heading, (100, 120))
-            # Slider label
-            lbl = FONT_BODY.render("Length:", True, FG_WHITE)
-            self.screen.blit(lbl, (100, 175))
+            self.screen.blit(FONT_HEADING.render("Generate Password", True, FG_WHITE), (100, 120))
+            self.screen.blit(FONT_BODY.render("Length:", True, FG_WHITE), (100, 175))
             self.slider.draw(self.screen)
-            # Strength meter
             if self.gen_display:
-                pw_label = FONT_MONO.render("Generated: " + self.gen_display, True, FG_WHITE)
-                self.screen.blit(pw_label, (100, 260))
-                self.strength_meter.draw(self.screen)
-                strength_txt = FONT_SMALL.render(f"Strength: {self.strength_meter.percentage}%", True, FG_WHITE)
-                self.screen.blit(strength_txt, (510, 300))
-            else:
+                self.screen.blit(FONT_MONO.render("Result: " + self.gen_display, True, FG_WHITE), (100, 260))
                 self.strength_meter.draw(self.screen)
             self.gen_button.draw(self.screen)
             self.gen_save.draw(self.screen)
             self.gen_back.draw(self.screen)
 
-        # ---- Message overlay ----
         if self.message and self.message_timer > 0:
             msg_surf = FONT_BODY.render(self.message, True, self.message_color)
-            msg_bg = pygame.Surface((msg_surf.get_width() + 20, msg_surf.get_height() + 10), pygame.SRCALPHA)
-            msg_bg.fill((0, 0, 0, 180))
-            self.screen.blit(msg_bg, (WIDTH//2 - msg_surf.get_width()//2 - 10, HEIGHT - 70))
-            self.screen.blit(msg_surf, (WIDTH//2 - msg_surf.get_width()//2, HEIGHT - 65))
+            pygame.draw.rect(self.screen, (0, 0, 0), (WIDTH//2 - msg_surf.get_width()//2 - 10, HEIGHT - 70, msg_surf.get_width() + 20, 40), border_radius=8)
+            self.screen.blit(msg_surf, (WIDTH//2 - msg_surf.get_width()//2, HEIGHT - 62))
 
 
 def run_gui(vault=None):
-    """Entry point from project.py. If vault is provided, we still show
-       a login screen for security – the vault is ignored until re-authentication."""
     app = PasswordManagerApp(vault)
     app.run()
-
 
 if __name__ == "__main__":
     run_gui()
