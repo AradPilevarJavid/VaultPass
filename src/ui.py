@@ -357,18 +357,14 @@ class PasswordManagerApp:
         self.create_shortcut_btn = Button(WIDTH//2 - 75, 440, 150, 40, "Create Vault", color=BG_CARD, text_color=ACCENT_BLUE, callback=lambda: self.goto("SETUP"))
 
         self.add_btn = Button(WIDTH//2 - 120, 180, 240, 50, "Add Password", callback=lambda: self.goto("ADD"))
-        self.view_btn = Button(WIDTH//2 - 120, 250, 240, 50, "View Passwords", callback=lambda: self.goto("VIEW"))
-        self.del_btn = Button(WIDTH//2 - 120, 320, 240, 50, "Delete Password", callback=lambda: self.goto("DELETE"))
-        self.gen_btn = Button(WIDTH//2 - 120, 390, 240, 50, "Generate Password", callback=lambda: self.goto("GENERATE"))
+        self.del_btn = Button(WIDTH//2 - 120, 250, 240, 50, "View and delete Password", callback=lambda: self.goto("DELETE"))
+        self.gen_btn = Button(WIDTH//2 - 120, 320, 240, 50, "Generate Password", callback=lambda: self.goto("GENERATE"))
         self.quit_btn = Button(WIDTH//2 - 120, 480, 240, 50, "Quit", color=RED, callback=self.quit)
 
         self.add_service = TextInput(100, 180, 320, 40, "Service name")
         self.add_password = TextInput(100, 250, 320, 40, "Password", password=True)
         self.add_save = Button(100, 320, 140, 40, "Save", callback=self.do_add)
         self.add_back = Button(260, 320, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
-
-        self.view_list = ScrollableList(50, 120, 800, 420)
-        self.view_back = Button(50, 570, 120, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
         self.del_list = SelectableList(100, 160, 400, 300)
         self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
@@ -384,9 +380,7 @@ class PasswordManagerApp:
     def goto(self, state):
         self.state = state
         self.message = ""
-        if state == "VIEW":
-            self.refresh_view()
-        elif state == "DELETE":
+        if state == "DELETE":
             self.refresh_delete_list()
         elif state == "GENERATE":
             self.gen_display = ""
@@ -430,14 +424,6 @@ class PasswordManagerApp:
         self.add_service.clear()
         self.add_password.clear()
         self.set_message(f"Saved '{service}'", GREEN)
-
-    def refresh_view(self):
-        try:
-            pwds = self.vault.load_passwords()
-            items = [f"{s}: {p}" for s, p in pwds.items()]
-            self.view_list.set_items(items if items else ["(empty)"])
-        except Exception:
-            self.view_list.set_items([])
 
     def refresh_delete_list(self):
         try:
@@ -498,8 +484,6 @@ class PasswordManagerApp:
                     self.del_list.handle_event(event)
                 elif self.state == "GENERATE":
                     self.slider.handle_event(event)
-                elif self.state == "VIEW":
-                    self.view_list.handle_event(event)
                 for btn in self._state_buttons():
                     btn.handle_event(event)
             if self.message_timer > 0:
@@ -520,11 +504,9 @@ class PasswordManagerApp:
         if self.state == "SETUP":
             return [self.setup_btn]
         if self.state == "MAIN":
-            return [self.add_btn, self.view_btn, self.del_btn, self.gen_btn, self.quit_btn]
+            return [self.add_btn, self.del_btn, self.gen_btn, self.quit_btn]
         if self.state == "ADD":
             return [self.add_save, self.add_back]
-        if self.state == "VIEW":
-            return [self.view_back]
         if self.state == "DELETE":
             return [self.del_confirm, self.del_back]
         if self.state == "GENERATE":
@@ -554,7 +536,7 @@ class PasswordManagerApp:
                 self.setup_btn.draw(self.screen)
 
         elif self.state == "MAIN":
-            for b in [self.add_btn, self.view_btn, self.del_btn, self.gen_btn, self.quit_btn]:
+            for b in [self.add_btn, self.del_btn, self.gen_btn, self.quit_btn]:
                 b.draw(self.screen)
 
         elif self.state == "ADD":
@@ -563,11 +545,6 @@ class PasswordManagerApp:
             self.add_password.draw(self.screen)
             self.add_save.draw(self.screen)
             self.add_back.draw(self.screen)
-
-        elif self.state == "VIEW":
-            self.screen.blit(FONT_HEADING.render("Stored Passwords", True, FG_WHITE), (50, 80))
-            self.view_list.draw(self.screen)
-            self.view_back.draw(self.screen)
 
         elif self.state == "DELETE":
             self.screen.blit(FONT_HEADING.render("Select Service to Delete", True, FG_WHITE), (100, 110))

@@ -4,7 +4,7 @@ import hashlib
 import secrets
 import base64
 import string
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 
@@ -37,40 +37,6 @@ def check_passwd_strength(passwd):
         seen[ch] = True
     points -= 5 * repetition
     return max(points, 0)
-
-
-
-# def check_passwd_strength(passwd: str) -> int:
-#     """
-#     Return a score from 0 (very weak) to 100 (excellent).
-#     Rewards length and character class variety.
-#     """
-#     if len(passwd) < 4:
-#         raise ValueError("length must be at least 4")
-
-#     length = len(passwd)
-#     length_score = min(length / 20, 1.0) * 50
-
-#     classes = 0
-#     if any(c.islower() for c in passwd):
-#         classes += 1
-#     if any(c.isupper() for c in passwd):
-#         classes += 1
-#     if any(c.isdigit() for c in passwd):
-#         classes += 1
-#     if any(c in string.punctuation for c in passwd):
-#         classes += 1
-#     variety_score = {0: 0, 1: 10, 2: 25, 3: 35, 4: 40}.get(classes, 40)
-
-#     from collections import Counter
-#     most_common_count = Counter(passwd).most_common(1)[0][1]
-#     repeat_ratio = most_common_count / length
-#     penalty = max(0, (repeat_ratio - 0.5) * 20)  
-
-#     score = length_score + variety_score - penalty
-#     return max(0, min(100, round(score)))
-
-
 
 
 class Vault:
@@ -149,8 +115,11 @@ class Vault:
             return {}
         key = self._derive_key(self._master_password, salt)
         fernet = Fernet(key)
-        data = fernet.decrypt(token)
-        return json.loads(data.decode())
+        try:
+            data = fernet.decrypt(token)
+            return json.loads(data.decode())
+        except (InvalidToken, json.JSONDecodeError, UnicodeDecodeError):
+            return {}
 
     def load_passwords(self):
         salt = self._get_file_salt()
