@@ -82,22 +82,20 @@ class TextInput:
         pygame.draw.rect(surface, color, self.rect, border_radius=8)
         pygame.draw.rect(surface, ACCENT_BLUE if self.active else FG_DIM, self.rect, 2, border_radius=8)
 
-        # Text
         display = self.text
-        if self.password and not self.active:
+        if self.password:
             display = "•" * len(self.text)
-        if not display and not self.active:
+        if not self.text and not self.active:
             text_surf = FONT_BODY.render(self.placeholder, True, FG_DIM)
         else:
             text_surf = FONT_BODY.render(display, True, FG_WHITE)
 
-        # Clipping
         clip = surface.get_clip()
         surface.set_clip(self.rect)
         surface.blit(text_surf, (self.rect.x + 8, self.rect.y + (self.rect.h - text_surf.get_height()) // 2))
         # Cursor
         if self.active and self.cursor_visible and self.text:
-            cursor_x = self.rect.x + 8 + FONT_BODY.size(self.text)[0]
+            cursor_x = self.rect.x + 8 + FONT_BODY.size(display)[0]
             pygame.draw.line(surface, FG_WHITE,
                              (cursor_x, self.rect.y + 8),
                              (cursor_x, self.rect.y + self.rect.h - 8), 2)
@@ -134,7 +132,6 @@ class Button:
             self.click_scale = 1.0
 
     def draw(self, surface):
-        # Scale effect
         w = int(self.rect.width * self.click_scale)
         h = int(self.rect.height * self.click_scale)
         x = self.rect.x + (self.rect.width - w) // 2
@@ -152,7 +149,7 @@ class Button:
 
 class Slider:
     """Horizontal slider for password length."""
-    def __init__(self, x, y, w, min_val=4, max_val=64, init_val=16):
+    def __init__(self, x, y, w, min_val=4, max_val=32, init_val=16):
         self.rect = pygame.Rect(x, y, w, 16)          # track area
         self.handle_rect = pygame.Rect(0, 0, 20, 28)  # handle size
         self.min = min_val
@@ -336,8 +333,8 @@ class PasswordManagerApp:
         self.running = True
 
         # Authentication state
-        self.vault = None          # will hold Vault after successful auth
-        self.state = "LOGIN"       # LOGIN, SETUP, MAIN, ADD, VIEW, DELETE, GENERATE
+        self.vault = None
+        self.state = "LOGIN"
         self.message = ""
         self.message_timer = 0
 
@@ -370,8 +367,8 @@ class PasswordManagerApp:
         self.del_confirm = Button(100, 290, 140, 40, "Delete", color=RED, callback=self.do_delete)
         self.del_back = Button(260, 290, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
-        # Generate screen
-        self.slider = Slider(100, 200, 400, min_val=4, max_val=64, init_val=16)
+
+        self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
         self.gen_display = ""
         self.strength_meter = StrengthMeter(100, 300, 400, 20)
         self.gen_button = Button(100, 350, 140, 40, "Generate", callback=self.do_generate)

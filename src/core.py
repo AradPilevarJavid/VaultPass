@@ -27,13 +27,50 @@ def check_passwd_strength(passwd):
     points = 100
     if len(passwd) < 8:
         points -= (8 - len(passwd)) * 10
+    if len(passwd) > 16:
+        return 100
+    seen = {}
     repetition = 0
-    for i in range(len(passwd)):
-        for j in range(i):
-            if passwd[i] == passwd[j]:
-                repetition += 1
+    for ch in passwd:
+        if ch in seen:
+            repetition += 1
+        seen[ch] = True
     points -= 5 * repetition
     return max(points, 0)
+
+
+
+# def check_passwd_strength(passwd: str) -> int:
+#     """
+#     Return a score from 0 (very weak) to 100 (excellent).
+#     Rewards length and character class variety.
+#     """
+#     if len(passwd) < 4:
+#         raise ValueError("length must be at least 4")
+
+#     length = len(passwd)
+#     length_score = min(length / 20, 1.0) * 50
+
+#     classes = 0
+#     if any(c.islower() for c in passwd):
+#         classes += 1
+#     if any(c.isupper() for c in passwd):
+#         classes += 1
+#     if any(c.isdigit() for c in passwd):
+#         classes += 1
+#     if any(c in string.punctuation for c in passwd):
+#         classes += 1
+#     variety_score = {0: 0, 1: 10, 2: 25, 3: 35, 4: 40}.get(classes, 40)
+
+#     from collections import Counter
+#     most_common_count = Counter(passwd).most_common(1)[0][1]
+#     repeat_ratio = most_common_count / length
+#     penalty = max(0, (repeat_ratio - 0.5) * 20)  
+
+#     score = length_score + variety_score - penalty
+#     return max(0, min(100, round(score)))
+
+
 
 
 class Vault:
