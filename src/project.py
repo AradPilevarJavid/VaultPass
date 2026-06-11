@@ -3,23 +3,17 @@ import getpass
 import time
 import os
 from core import (
-    load_passwords,
-    save_password,
-    delete_password,
+    Vault,
     generate_passwd,
     check_passwd_strength,
-    authenticate_user,
-    is_master_created,
-    _session_password,
 )
+
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 
-def terminal_menu():
-    if _session_password is None:
-        print("Not authenticated.")
-        return
+
+def terminal_menu(vault):
     while True:
         print("\n1️⃣  Add password ➕")
         print("2️⃣  View passwords 👁️")
@@ -39,13 +33,13 @@ def terminal_menu():
                 print("❌ Password cannot be empty.")
                 time.sleep(2)
                 continue
-            save_password(service, password)
+            vault.save_password(service, password)
             clear_screen()
             print("✅ Saved.")
         elif choice == "2":
             clear_screen()
             try:
-                passwords = load_passwords()
+                passwords = vault.load_passwords()
             except Exception as e:
                 print(f"⚠️ Error loading: {e}")
                 time.sleep(2)
@@ -60,7 +54,7 @@ def terminal_menu():
         elif choice == "3":
             clear_screen()
             service = input("Service to delete: 🗑️ ").strip()
-            if delete_password(service):
+            if vault.delete_password(service):
                 print("✅ Deleted.")
             else:
                 print("❌ Not found.")
@@ -90,40 +84,39 @@ def terminal_menu():
             time.sleep(2)
             clear_screen()
 
+
 def main():
     clear_screen()
     gui_mode = "--gui" in sys.argv
 
-    # ----- Authentication -----
-    if not is_master_created():
+    if not Vault.is_master_created():
         print("First time setup. Create a master password.")
         pwd = getpass.getpass("New master password: ")
         if len(pwd) < 4:
             print("Password must be at least 4 characters.")
             return
-        if not authenticate_user(pwd):
-            print("Authentication failed.")
-            return
+        vault = Vault.create(pwd)
         print("Master password set.")
     else:
         pwd = getpass.getpass("Master password: ")
-        if not authenticate_user(pwd):
+        vault = Vault.login(pwd)
+        if vault is None:
             print("❌ Authentication failed.")
             return
 
-    # ----- Launch appropriate interface -----
     if gui_mode:
         try:
             from ui import run_gui
             print("Starting GUI...")
-            run_gui()
+            run_gui(vault)
         except ImportError as e:
             print(f"Failed to import ui: {e}")
             print("Make sure ui.py and core.py are in the same folder.")
         except Exception as e:
             print(f"Unexpected error when starting GUI: {e}")
     else:
-        terminal_menu()
+        terminal_menu(vault)
+
 
 if __name__ == "__main__":
     main()
