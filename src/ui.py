@@ -11,7 +11,7 @@ from core import (
 # ------------------------------------------------------------------------
 pygame.init()
 
-# Colour palette (dark theme with accent blue)
+
 BG_DEEP = (24, 24, 38)           # main background
 BG_CARD = (36, 36, 54)           # card / container
 FG_WHITE = (230, 230, 240)       # primary text
@@ -23,11 +23,9 @@ GREEN = (80, 200, 120)           # success
 YELLOW = (255, 200, 50)          # warnings
 WHITE = (255, 255, 255)
 
-# Dimensions & layout
 WIDTH, HEIGHT = 900, 650
 FPS = 30
 
-# Fonts – try system sans-serif, fallback to Pygame default
 def get_font(size, bold=False):
     name = "Segoe UI" if sys.platform == "win32" else "Arial"
     try:
@@ -64,10 +62,8 @@ class TextInput:
             elif event.key == pygame.K_RETURN:
                 self.active = False
             else:
-                # Only allow printable characters
                 if event.unicode.isprintable():
                     self.text += event.unicode
-        # Cursor blink
         if self.active:
             self.cursor_timer += 1
             if self.cursor_timer >= 30:
@@ -75,6 +71,7 @@ class TextInput:
                 self.cursor_visible = not self.cursor_visible
         else:
             self.cursor_visible = False
+
 
     def draw(self, surface):
         # Background
@@ -242,20 +239,24 @@ class ScrollableList:
     def set_items(self, items):
         self.items = items
         self.scroll = 0
+        self._clamp_scroll()
+
+    def _clamp_scroll(self):
+        total_h = len(self.items) * self.item_height
+        max_scroll = max(0, total_h - self.rect.height)
+        self.scroll = max(0, min(self.scroll, max_scroll))
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEWHEEL:
             self.scroll -= event.y * 30
+            self._clamp_scroll()
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            # Scrollbar click / drag
             if self.rect.collidepoint(event.pos):
-                # Check if click on scrollbar
                 total_h = len(self.items) * self.item_height
                 if total_h > self.rect.height:
                     bar_rect = self._scrollbar_rect()
                     if bar_rect.collidepoint(event.pos):
                         self.scrollbar_dragging = True
-                        # Adjust scroll based on click position
                         self._scrollbar_move(event.pos[1])
         elif event.type == pygame.MOUSEBUTTONUP:
             self.scrollbar_dragging = False
@@ -278,19 +279,16 @@ class ScrollableList:
             return
         bar_h = max(20, self.rect.height * self.rect.height / total_h)
         scrollable = total_h - self.rect.height
-        # Invert mapping
         rel_y = max(self.rect.y, min(mouse_y - bar_h / 2, self.rect.y + self.rect.height - bar_h))
-        ratio = (rel_y - self.rect.y) / (self.rect.height - bar_h)
+        denom = self.rect.height - bar_h
+        ratio = (rel_y - self.rect.y) / denom if denom else 0
         self.scroll = int(ratio * scrollable)
-        self.scroll = max(0, min(self.scroll, scrollable))
+        self._clamp_scroll()
 
     def draw(self, surface):
-        # Background
         pygame.draw.rect(surface, BG_CARD, self.rect, border_radius=8)
-        # Clipping
         old_clip = surface.get_clip()
         surface.set_clip(self.rect)
-        # Draw items
         start = self.scroll // self.item_height
         for i, item in enumerate(self.items[start:], start=start):
             y = self.rect.y + i * self.item_height - self.scroll
@@ -298,10 +296,8 @@ class ScrollableList:
                 continue
             if y > self.rect.bottom:
                 break
-            # Alternating row colour
             row_color = BG_DEEP if i % 2 == 0 else BG_CARD
             pygame.draw.rect(surface, row_color, (self.rect.x, y, self.rect.width, self.item_height))
-            # Service name (left) and password (right) – colour coded
             if ":" in item:
                 service, pwd = item.split(":", 1)
                 serv_text = FONT_BODY.render(service.strip(), True, FG_WHITE)
@@ -312,7 +308,6 @@ class ScrollableList:
                 txt = FONT_BODY.render(item, True, FG_WHITE)
                 surface.blit(txt, (self.rect.x + 10, y + 5))
         surface.set_clip(old_clip)
-        # Scrollbar
         total_h = len(self.items) * self.item_height
         if total_h > self.rect.height:
             bar_rect = self._scrollbar_rect()
