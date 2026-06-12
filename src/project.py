@@ -4,12 +4,30 @@ import time
 import os
 from core import (
     Vault,
-    generate_passwd,
-    check_passwd_strength,
 )
 
+def generate_passwd(length):
+    chars = string.ascii_letters + string.digits + string.punctuation
+    return "".join(secrets.choice(chars) for _ in range(length))
 
-# my signiture function.
+def check_passwd_strength(passwd):
+    if len(passwd) < 4:
+        raise ValueError("length must be at least 4")
+    points = 100
+    if len(passwd) < 8:
+        points -= (8 - len(passwd)) * 10
+    if len(passwd) > 16:
+        return 100
+    seen = {}
+    repetition = 0
+    for ch in passwd:
+        if ch in seen:
+            repetition += 1
+        seen[ch] = True
+    points -= 5 * repetition
+    return max(points, 0)
+
+# my signature function.
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
 

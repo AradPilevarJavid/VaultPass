@@ -362,7 +362,7 @@ class PasswordManagerApp:
         self.create_shortcut_btn = Button(WIDTH//2 - 75, 440, 150, 40, "Create Vault", color=BG_CARD, text_color=ACCENT_BLUE, callback=lambda: self.goto("SETUP"))
 
         self.add_btn = Button(WIDTH//2 - 120, 180, 240, 50, "Add Password", callback=lambda: self.goto("ADD"))
-        self.del_btn = Button(WIDTH//2 - 120, 250, 240, 50, "View and delete Password", callback=lambda: self.goto("DELETE"))
+        self.del_btn = Button(WIDTH//2 - 120, 250, 240, 50, "Manage Saved Passwords", callback=lambda: self.goto("DELETE"))
         self.gen_btn = Button(WIDTH//2 - 120, 320, 240, 50, "Generate Password", callback=lambda: self.goto("GENERATE"))
         self.quit_btn = Button(WIDTH//2 - 120, 480, 240, 50, "Quit", color=RED, callback=self.quit)
 
@@ -374,6 +374,7 @@ class PasswordManagerApp:
         self.del_list = SelectableList(100, 160, 400, 300)
         self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
         self.del_back = Button(260, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.del_copy = Button(420, 480, 140, 40, "Copy", callback=self.do_copy_selected)
 
         self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
         self.gen_display = ""
@@ -450,6 +451,22 @@ class PasswordManagerApp:
         else:
             self.set_message("Error deleting service", RED)
 
+    def do_copy_selected(self):
+        service = self.del_list.get_selected_item()
+        if not service:
+            self.set_message("Select a service from the list", YELLOW)
+            return
+        pwds = self.vault.load_passwords()
+        pwd = pwds.get(service)
+        if pwd is None:
+            self.set_message("Service not found", RED)
+            return
+        try:
+            pyperclip.copy(pwd)
+            self.set_message(f"Copied password for '{service}'", GREEN)
+        except pyperclip.PyperclipException:
+            self.set_message("Clipboard unavailable", RED)
+
     def do_generate(self):
         self.gen_display = generate_passwd(self.slider.value)
         self.strength_meter.set_value(check_passwd_strength(self.gen_display))
@@ -522,7 +539,7 @@ class PasswordManagerApp:
         if self.state == "ADD":
             return [self.add_save, self.add_back]
         if self.state == "DELETE":
-            return [self.del_confirm, self.del_back]
+            return [self.del_confirm, self.del_copy, self.del_back]
         if self.state == "GENERATE":
             return [self.gen_button, self.gen_copy, self.gen_save, self.gen_back]
         return []
@@ -561,9 +578,10 @@ class PasswordManagerApp:
             self.add_back.draw(self.screen)
 
         elif self.state == "DELETE":
-            self.screen.blit(FONT_HEADING.render("Select Service to Delete", True, FG_WHITE), (100, 110))
+            self.screen.blit(FONT_HEADING.render("Manage Saved Passwords", True, FG_WHITE), (100, 110))
             self.del_list.draw(self.screen)
             self.del_confirm.draw(self.screen)
+            self.del_copy.draw(self.screen)
             self.del_back.draw(self.screen)
 
         elif self.state == "GENERATE":
