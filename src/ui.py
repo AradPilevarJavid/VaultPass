@@ -529,10 +529,13 @@ class PasswordManagerApp:
         self.add_show_pw_btn = Button(430, 250, 60, 40, "Show", color=BG_CARD, text_color=FG_WHITE,
                                       callback=self.toggle_add_password_visibility)
 
-        self.del_list = SelectableList(100, 160, 400, 300)
+        self.del_search = TextInput(100, 150, 400, 36, placeholder="Search service...")
+        self.del_list = SelectableList(100, 200, 400, 270)
         self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
         self.del_copy = Button(260, 480, 140, 40, "Copy", callback=self.do_copy_selected)
         self.del_back = Button(420, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.del_all_items = []
+        self._del_last_query = ""
 
         self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
         self.gen_toggles = {
@@ -605,10 +608,21 @@ class PasswordManagerApp:
     def refresh_delete_list(self):
         try:
             pwds = self.vault.load_passwords()
-            self.del_list.set_items(list(pwds.keys()))
-            self.del_list.selected_index = -1
+            self.del_all_items = list(pwds.keys())
         except Exception:
-            self.del_list.set_items([])
+            self.del_all_items = []
+        self.del_search.clear()
+        self._del_last_query = ""
+        self._apply_del_filter()
+
+    def _apply_del_filter(self):
+        query = self.del_search.get_text().strip().lower()
+        if query:
+            items = [s for s in self.del_all_items if query in s.lower()]
+        else:
+            items = list(self.del_all_items)
+        self.del_list.set_items(items)
+        self.del_list.selected_index = -1
 
     def do_delete(self):
         service = self.del_list.get_selected_item()
@@ -699,6 +713,10 @@ class PasswordManagerApp:
                     self.add_service.handle_event(event)
                     self.add_password.handle_event(event)
                 elif self.state == "DELETE":
+                    self.del_search.handle_event(event)
+                    if self.del_search.get_text() != self._del_last_query:
+                        self._del_last_query = self.del_search.get_text()
+                        self._apply_del_filter()
                     self.del_list.handle_event(event)
                 elif self.state == "GENERATE":
                     self.slider.handle_event(event)
@@ -711,6 +729,7 @@ class PasswordManagerApp:
             self.confirm_input.update()
             self.add_service.update()
             self.add_password.update()
+            self.del_search.update()
 
             if self.message_timer > 0:
                 self.message_timer -= 1
@@ -775,6 +794,7 @@ class PasswordManagerApp:
 
         elif self.state == "DELETE":
             self.screen.blit(FONT_HEADING.render("Manage Saved Passwords", True, FG_WHITE), (100, 110))
+            self.del_search.draw(self.screen)
             self.del_list.draw(self.screen)
             self.del_confirm.draw(self.screen)
             self.del_copy.draw(self.screen)
