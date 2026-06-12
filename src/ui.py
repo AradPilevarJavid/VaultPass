@@ -1,5 +1,6 @@
 import pygame
 import sys
+import pyperclip
 from core import (
     Vault,
     generate_passwd,
@@ -113,12 +114,13 @@ class Button:
     def handle_event(self, event):
         if event.type == pygame.MOUSEMOTION:
             self.hover = self.rect.collidepoint(event.pos)
-        if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos):
             self.click_scale = 0.95
             if self.callback:
                 self.callback()
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.click_scale = 1.0
+
 
     def draw(self, surface):
         w = int(self.rect.width * self.click_scale)
@@ -376,9 +378,10 @@ class PasswordManagerApp:
         self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
         self.gen_display = ""
         self.strength_meter = StrengthMeter(100, 300, 400, 20)
-        self.gen_button = Button(100, 350, 140, 40, "Generate", callback=self.do_generate)
-        self.gen_save = Button(260, 350, 180, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
-        self.gen_back = Button(460, 350, 120, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.gen_button = Button(100, 350, 130, 40, "Generate", callback=self.do_generate)
+        self.gen_copy = Button(245, 350, 110, 40, "Copy", callback=self.do_copy_generated)
+        self.gen_save = Button(370, 350, 150, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
+        self.gen_back = Button(535, 350, 100, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
     def goto(self, state):
         self.state = state
@@ -451,6 +454,14 @@ class PasswordManagerApp:
         self.gen_display = generate_passwd(self.slider.value)
         self.strength_meter.set_value(check_passwd_strength(self.gen_display))
 
+    def do_copy_generated(self):
+        if self.gen_display:
+            try:
+                pyperclip.copy(self.gen_display)
+                self.set_message("Copied to clipboard", GREEN)
+            except pyperclip.PyperclipException:
+                self.set_message("Clipboard unavailable", RED)
+
     def do_save_generated(self):
         if not self.gen_display:
             return
@@ -513,7 +524,7 @@ class PasswordManagerApp:
         if self.state == "DELETE":
             return [self.del_confirm, self.del_back]
         if self.state == "GENERATE":
-            return [self.gen_button, self.gen_save, self.gen_back]
+            return [self.gen_button, self.gen_copy, self.gen_save, self.gen_back]
         return []
 
     def draw(self):
@@ -563,6 +574,7 @@ class PasswordManagerApp:
                 self.screen.blit(FONT_MONO.render("Result: " + self.gen_display, True, FG_WHITE), (100, 260))
                 self.strength_meter.draw(self.screen)
             self.gen_button.draw(self.screen)
+            self.gen_copy.draw(self.screen)
             self.gen_save.draw(self.screen)
             self.gen_back.draw(self.screen)
 
