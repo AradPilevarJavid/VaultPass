@@ -4,6 +4,7 @@ import hashlib
 import secrets
 import base64
 import string
+import tempfile
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
@@ -14,11 +15,6 @@ MASTER_FILE = "master.json"
 
 def hash_password(password, salt):
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000).hex()
-
-
-# def generate_passwd(length):
-#     chars = string.ascii_letters + string.digits + string.punctuation
-#     return "".join(secrets.choice(chars) for _ in range(length))
 
 
 def generate_passwd(length, use_upper=True, use_lower=True,
@@ -58,6 +54,29 @@ def check_passwd_strength(passwd):
     return max(points, 0)
 
 
+def _atomic_write_bytes(path, data):
+    """Write bytes atomically to path using a temporary file in the same directory."""
+    dir_ = os.path.dirname(path)
+    fd, tmp = tempfile.mkstemp(dir=dir_)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _atomic_write_text(path, text):
+    """Atomic write of a string (encode to UTF-8 bytes)."""
+    _atomic_write_bytes(path, text.encode('utf-8'))
+
+
 class Vault:
     def __init__(self, master_password):
         self._master_password = master_password
@@ -71,8 +90,7 @@ class Vault:
             "hash": hash_password(master_password, salt),
             "file_salt": file_salt.hex(),
         }
-        with open(MASTER_FILE, "w") as f:
-            json.dump(record, f)
+        _atomic_write_text(MASTER_FILE, json.dumps(record))
         return cls(master_password)
 
     @classmethod
@@ -105,8 +123,7 @@ class Vault:
             record = json.load(f)
         if "file_salt" not in record:
             record["file_salt"] = secrets.token_bytes(16).hex()
-            with open(MASTER_FILE, "w") as f:
-                json.dump(record, f)
+            _atomic_write_text(MASTER_FILE, json.dumps(record))
             if os.path.exists(PASSWORD_FILE):
                 try:
                     with open(PASSWORD_FILE, "r") as pf:
@@ -121,8 +138,7 @@ class Vault:
         fernet = Fernet(key)
         data = json.dumps(passwords).encode()
         token = fernet.encrypt(data)
-        with open(PASSWORD_FILE, "wb") as f:
-            f.write(token)
+        _atomic_write_bytes(PASSWORD_FILE, token)
 
     def _decrypt_passwords(self, salt):
         try:
