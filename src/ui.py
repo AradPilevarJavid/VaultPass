@@ -58,6 +58,11 @@ class TextInput:
                 self.text = self.text[:-1]
             elif event.key == pygame.K_RETURN:
                 self.active = False
+            elif event.key == pygame.K_v and (event.mod & pygame.KMOD_CTRL):
+                try:
+                    self.text += pyperclip.paste()
+                except pyperclip.PyperclipException:
+                    pass
             else:
                 if event.unicode.isprintable():
                     self.text += event.unicode
@@ -373,8 +378,8 @@ class PasswordManagerApp:
 
         self.del_list = SelectableList(100, 160, 400, 300)
         self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
-        self.del_back = Button(260, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
-        self.del_copy = Button(420, 480, 140, 40, "Copy", callback=self.do_copy_selected)
+        self.del_copy = Button(260, 480, 140, 40, "Copy", callback=self.do_copy_selected)
+        self.del_back = Button(420, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
         self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
         self.gen_display = ""
