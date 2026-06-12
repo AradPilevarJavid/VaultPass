@@ -66,6 +66,10 @@ class TextInput:
             return None
         return lo, hi
 
+    def _reset_blink(self):
+        self.cursor_visible = True
+        self.cursor_timer = 0
+
     def _delete_selection(self):
         rng = self._selection_range()
         if rng is None:
@@ -96,6 +100,7 @@ class TextInput:
             if self.active:
                 self.cursor = self._index_from_x(event.pos[0])
                 self.sel_anchor = None
+                self._reset_blink()                # <-- added
         if event.type == pygame.KEYDOWN and self.active:
             ctrl = event.mod & pygame.KMOD_CTRL
             shift = event.mod & pygame.KMOD_SHIFT
@@ -158,7 +163,12 @@ class TextInput:
                     self.text = self.text[:self.cursor] + event.unicode + self.text[self.cursor:]
                     self.cursor += 1
                     self.sel_anchor = None
+            # clamp and reset blink after any key that moved the cursor
             self.cursor = max(0, min(self.cursor, len(self.text)))
+            self._reset_blink()                     # <-- added
+
+    # New per‑frame blink update – called from the main loop
+    def update(self):
         if self.active:
             self.cursor_timer += 1
             if self.cursor_timer >= 30:
@@ -629,6 +639,13 @@ class PasswordManagerApp:
                     self.slider.handle_event(event)
                 for btn in self._state_buttons():
                     btn.handle_event(event)
+
+            # -- per‑frame blink update for all text inputs --
+            self.master_input.update()
+            self.confirm_input.update()
+            self.add_service.update()
+            self.add_password.update()
+
             if self.message_timer > 0:
                 self.message_timer -= 1
                 if self.message_timer == 0:
