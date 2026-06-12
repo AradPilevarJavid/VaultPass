@@ -5,6 +5,7 @@ passwords.json
 *.sqlite3
 
 # Python environment and cache
+venv/
 Cs50P_Project_venv/
 __pycache__/
 *.py[cod]
