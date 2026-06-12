@@ -49,23 +49,116 @@ class TextInput:
         self.password = password
         self.cursor_visible = True
         self.cursor_timer = 0
+        self.cursor = 0
+        self.sel_anchor = None
+
+    def _display_string(self):
+        if self.password:
+            return "•" * len(self.text)
+        return self.text
+
+    def _selection_range(self):
+        if self.sel_anchor is None:
+            return None
+        lo = min(self.sel_anchor, self.cursor)
+        hi = max(self.sel_anchor, self.cursor)
+        if lo == hi:
+            return None
+        return lo, hi
+
+    def _delete_selection(self):
+        rng = self._selection_range()
+        if rng is None:
+            return False
+        lo, hi = rng
+        self.text = self.text[:lo] + self.text[hi:]
+        self.cursor = lo
+        self.sel_anchor = None
+        return True
+
+    def _index_from_x(self, mouse_x):
+        font = FONT_BODY
+        display = self._display_string()
+        rel = mouse_x - (self.rect.x + 8)
+        best_i = 0
+        best_dist = abs(rel)
+        for i in range(1, len(display) + 1):
+            x = font.size(display[:i])[0]
+            dist = abs(rel - x)
+            if dist < best_dist:
+                best_dist = dist
+                best_i = i
+        return best_i
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             self.active = self.rect.collidepoint(event.pos)
+            if self.active:
+                self.cursor = self._index_from_x(event.pos[0])
+                self.sel_anchor = None
         if event.type == pygame.KEYDOWN and self.active:
-            if event.key == pygame.K_BACKSPACE:
-                self.text = self.text[:-1]
-            elif event.key == pygame.K_RETURN:
-                self.active = False
-            elif event.key == pygame.K_v and (event.mod & pygame.KMOD_CTRL):
+            ctrl = event.mod & pygame.KMOD_CTRL
+            shift = event.mod & pygame.KMOD_SHIFT
+            if event.key == pygame.K_a and ctrl:
+                self.sel_anchor = 0
+                self.cursor = len(self.text)
+            elif event.key == pygame.K_c and ctrl:
+                rng = self._selection_range()
+                if rng is None:
+                    copied = self.text
+                else:
+                    lo, hi = rng
+                    copied = self.text[lo:hi]
                 try:
-                    self.text += pyperclip.paste()
+                    pyperclip.copy(copied)
                 except pyperclip.PyperclipException:
                     pass
+            elif event.key == pygame.K_v and ctrl:
+                try:
+                    pasted = pyperclip.paste()
+                except pyperclip.PyperclipException:
+                    pasted = ""
+                if pasted:
+                    self._delete_selection()
+                    self.text = self.text[:self.cursor] + pasted + self.text[self.cursor:]
+                    self.cursor += len(pasted)
+                    self.sel_anchor = None
+            elif event.key == pygame.K_LEFT:
+                if shift:
+                    if self.sel_anchor is None:
+                        self.sel_anchor = self.cursor
+                    self.cursor = max(0, self.cursor - 1)
+                else:
+                    self.cursor = max(0, self.cursor - 1)
+                    self.sel_anchor = None
+            elif event.key == pygame.K_RIGHT:
+                if shift:
+                    if self.sel_anchor is None:
+                        self.sel_anchor = self.cursor
+                    self.cursor = min(len(self.text), self.cursor + 1)
+                else:
+                    self.cursor = min(len(self.text), self.cursor + 1)
+                    self.sel_anchor = None
+            elif event.key == pygame.K_HOME:
+                self.cursor = 0
+                self.sel_anchor = None
+            elif event.key == pygame.K_END:
+                self.cursor = len(self.text)
+                self.sel_anchor = None
+            elif event.key == pygame.K_BACKSPACE:
+                if not self._delete_selection():
+                    if self.cursor > 0:
+                        self.text = self.text[:self.cursor - 1] + self.text[self.cursor:]
+                        self.cursor -= 1
+            elif event.key == pygame.K_RETURN:
+                self.active = False
             else:
-                if event.unicode.isprintable():
-                    self.text += event.unicode
+                if event.unicode.isprintable() and event.unicode:
+                    self._delete_selection()
+                    self.text = self.text[:self.cursor] + event.unicode + self.text[self.cursor:]
+                    self.cursor += 1
+                    self.sel_anchor = None
+            self.cursor = max(0, min(self.cursor, len(self.text)))
         if self.active:
             self.cursor_timer += 1
             if self.cursor_timer >= 30:
@@ -79,9 +172,7 @@ class TextInput:
         pygame.draw.rect(surface, color, self.rect, border_radius=8)
         pygame.draw.rect(surface, ACCENT_BLUE if self.active else FG_DIM, self.rect, 2, border_radius=8)
 
-        display = self.text
-        if self.password:
-            display = "•" * len(self.text)
+        display = self._display_string()
         if not self.text and not self.active:
             text_surf = FONT_BODY.render(self.placeholder, True, FG_DIM)
         else:
@@ -89,9 +180,23 @@ class TextInput:
 
         clip = surface.get_clip()
         surface.set_clip(self.rect)
-        surface.blit(text_surf, (self.rect.x + 8, self.rect.y + (self.rect.h - text_surf.get_height()) // 2))
-        if self.active and self.cursor_visible and self.text:
-            cursor_x = self.rect.x + 8 + FONT_BODY.size(display)[0]
+        text_y = self.rect.y + (self.rect.h - text_surf.get_height()) // 2
+
+        rng = self._selection_range()
+        if self.active and rng is not None:
+            lo, hi = rng
+            x1 = self.rect.x + 8 + FONT_BODY.size(display[:lo])[0]
+            x2 = self.rect.x + 8 + FONT_BODY.size(display[:hi])[0]
+            sel_rect = pygame.Rect(x1, self.rect.y + 6, x2 - x1, self.rect.h - 12)
+            pygame.draw.rect(surface, ACCENT_BLUE, sel_rect)
+
+        if self.text or self.active:
+            surface.blit(text_surf, (self.rect.x + 8, text_y))
+        else:
+            surface.blit(text_surf, (self.rect.x + 8, text_y))
+
+        if self.active and self.cursor_visible:
+            cursor_x = self.rect.x + 8 + FONT_BODY.size(display[:self.cursor])[0]
             pygame.draw.line(surface, FG_WHITE,
                              (cursor_x, self.rect.y + 8),
                              (cursor_x, self.rect.y + self.rect.h - 8), 2)
@@ -103,6 +208,8 @@ class TextInput:
     def clear(self):
         self.text = ""
         self.active = False
+        self.cursor = 0
+        self.sel_anchor = None
 
 
 class Button:
