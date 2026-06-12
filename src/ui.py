@@ -219,6 +219,10 @@ class TextInput:
         self.cursor = 0
         self.sel_anchor = None
 
+    def toggle_password_visibility(self):
+        """Flip between hidden (•••) and shown text."""
+        self.password = not self.password
+
 
 class Button:
     def __init__(self, x, y, w, h, text, color=ACCENT_BLUE, text_color=WHITE, callback=None):
@@ -492,6 +496,8 @@ class PasswordManagerApp:
         self.add_password = TextInput(100, 250, 320, 40, "Password", password=True)
         self.add_save = Button(100, 320, 140, 40, "Save", callback=self.do_add)
         self.add_back = Button(260, 320, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.add_show_pw_btn = Button(430, 250, 60, 40, "Show", color=BG_CARD, text_color=FG_WHITE,
+                                      callback=self.toggle_add_password_visibility)
 
         self.del_list = SelectableList(100, 160, 400, 300)
         self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
@@ -503,7 +509,7 @@ class PasswordManagerApp:
         self.strength_meter = StrengthMeter(100, 300, 400, 20)
         self.gen_button = Button(100, 350, 130, 40, "Generate", callback=self.do_generate)
         self.gen_copy = Button(245, 350, 110, 40, "Copy", callback=self.do_copy_generated)
-        self.gen_save = Button(370, 350, 150, 40, "Save to Vault", callback=self.do_save_generated)
+        self.gen_save = Button(370, 350, 150, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
         self.gen_back = Button(535, 350, 100, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
     def goto(self, state):
@@ -554,6 +560,8 @@ class PasswordManagerApp:
         self.vault.save_password(service, password)
         self.add_service.clear()
         self.add_password.clear()
+        self.add_password.password = True
+        self.add_show_pw_btn.text = "Show"
         self.set_message(f"Saved '{service}'", GREEN)
 
     def refresh_delete_list(self):
@@ -610,6 +618,16 @@ class PasswordManagerApp:
         self.add_service.clear()
         self.add_password.text = self.gen_display
         self.add_password.active = False
+        self.add_password.password = True
+        self.add_show_pw_btn.text = "Show"
+
+    def toggle_add_password_visibility(self):
+        """Flip the password field between hidden and shown, update the button label."""
+        self.add_password.toggle_password_visibility()
+        if self.add_password.password:
+            self.add_show_pw_btn.text = "Show"
+        else:
+            self.add_show_pw_btn.text = "Hide"
 
     def set_message(self, msg, color=FG_WHITE):
         self.message = msg
@@ -667,7 +685,7 @@ class PasswordManagerApp:
         if self.state == "MAIN":
             return [self.add_btn, self.del_btn, self.gen_btn, self.quit_btn]
         if self.state == "ADD":
-            return [self.add_save, self.add_back]
+            return [self.add_save, self.add_back, self.add_show_pw_btn]
         if self.state == "DELETE":
             return [self.del_confirm, self.del_copy, self.del_back]
         if self.state == "GENERATE":
@@ -704,6 +722,7 @@ class PasswordManagerApp:
             self.screen.blit(FONT_HEADING.render("Add New Password", True, FG_WHITE), (100, 120))
             self.add_service.draw(self.screen)
             self.add_password.draw(self.screen)
+            self.add_show_pw_btn.draw(self.screen)
             self.add_save.draw(self.screen)
             self.add_back.draw(self.screen)
 
