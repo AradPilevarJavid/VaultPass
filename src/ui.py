@@ -179,7 +179,8 @@ class Slider:
         handle_color = ACCENT_HOVER if self.dragging else ACCENT_BLUE
         pygame.draw.rect(surface, handle_color, self.handle_rect, border_radius=6)
         pygame.draw.rect(surface, WHITE, self.handle_rect, 2, border_radius=6)
-        label = FONT_SMALL.render(f"{self.value}", True, FG_WHITE)
+        percent = int((self.value - self.min) / (self.max - self.min) * 100)
+        label = FONT_SMALL.render(f"{self.value} ({percent}%)", True, FG_WHITE)
         surface.blit(label, (self.rect.x + self.rect.width + 12, self.rect.y - 4))
 
 
@@ -205,6 +206,8 @@ class StrengthMeter:
             fill_rect = pygame.Rect(self.rect.x, self.rect.y, fill_w, self.rect.height)
             pygame.draw.rect(surface, color, fill_rect, border_radius=4)
         pygame.draw.rect(surface, FG_DIM, self.rect, 1, border_radius=4)
+        label = FONT_SMALL.render(f"{self.percentage}%", True, FG_WHITE)
+        surface.blit(label, (self.rect.x + self.rect.width + 12, self.rect.y - 2))
 
 
 class ScrollableList:
