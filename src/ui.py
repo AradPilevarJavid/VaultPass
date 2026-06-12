@@ -100,7 +100,7 @@ class TextInput:
             if self.active:
                 self.cursor = self._index_from_x(event.pos[0])
                 self.sel_anchor = None
-                self._reset_blink()                # <-- added
+                self._reset_blink()
         if event.type == pygame.KEYDOWN and self.active:
             ctrl = event.mod & pygame.KMOD_CTRL
             shift = event.mod & pygame.KMOD_SHIFT
@@ -163,11 +163,9 @@ class TextInput:
                     self.text = self.text[:self.cursor] + event.unicode + self.text[self.cursor:]
                     self.cursor += 1
                     self.sel_anchor = None
-            # clamp and reset blink after any key that moved the cursor
             self.cursor = max(0, min(self.cursor, len(self.text)))
-            self._reset_blink()                     # <-- added
+            self._reset_blink()
 
-    # New per‑frame blink update – called from the main loop
     def update(self):
         if self.active:
             self.cursor_timer += 1
@@ -243,7 +241,6 @@ class Button:
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.click_scale = 1.0
 
-
     def draw(self, surface):
         w = int(self.rect.width * self.click_scale)
         h = int(self.rect.height * self.click_scale)
@@ -257,6 +254,9 @@ class Button:
 
     def is_clicked(self, pos):
         return self.rect.collidepoint(pos)
+
+    def reset_hover(self):
+        self.hover = False
 
 
 class Slider:
@@ -503,7 +503,7 @@ class PasswordManagerApp:
         self.strength_meter = StrengthMeter(100, 300, 400, 20)
         self.gen_button = Button(100, 350, 130, 40, "Generate", callback=self.do_generate)
         self.gen_copy = Button(245, 350, 110, 40, "Copy", callback=self.do_copy_generated)
-        self.gen_save = Button(370, 350, 150, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
+        self.gen_save = Button(370, 350, 150, 40, "Save to Vault", callback=self.do_save_generated)
         self.gen_back = Button(535, 350, 100, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
     def goto(self, state):
@@ -514,6 +514,8 @@ class PasswordManagerApp:
         elif state == "GENERATE":
             self.gen_display = ""
             self.strength_meter.set_value(0)
+        for btn in self._state_buttons():
+            btn.reset_hover()
 
     def do_login(self):
         pwd = self.master_input.get_text()
@@ -640,7 +642,6 @@ class PasswordManagerApp:
                 for btn in self._state_buttons():
                     btn.handle_event(event)
 
-            # -- per‑frame blink update for all text inputs --
             self.master_input.update()
             self.confirm_input.update()
             self.add_service.update()
