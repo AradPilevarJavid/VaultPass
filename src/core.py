@@ -16,8 +16,27 @@ def hash_password(password, salt):
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000).hex()
 
 
-def generate_passwd(length):
-    chars = string.ascii_letters + string.digits + string.punctuation
+# def generate_passwd(length):
+#     chars = string.ascii_letters + string.digits + string.punctuation
+#     return "".join(secrets.choice(chars) for _ in range(length))
+
+
+def generate_passwd(length, use_upper=True, use_lower=True,
+                    use_digits=True, use_punctuation=True):
+    """Generate a password of given length from selected character sets."""
+    chars = ''
+    if use_upper:
+        chars += string.ascii_uppercase
+    if use_lower:
+        chars += string.ascii_lowercase
+    if use_digits:
+        chars += string.digits
+    if use_punctuation:
+        chars += string.punctuation
+
+    if not chars:
+        chars = string.ascii_letters + string.digits
+
     return "".join(secrets.choice(chars) for _ in range(length))
 
 

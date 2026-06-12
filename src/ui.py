@@ -224,6 +224,36 @@ class TextInput:
         self.password = not self.password
 
 
+class ToggleButton:
+    def __init__(self, x, y, w, h, text, active=True):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.text = text
+        self.active = active
+        self.hover = False
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEMOTION:
+            self.hover = self.rect.collidepoint(event.pos)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos):
+            self.active = not self.active
+
+    def draw(self, surface):
+        if self.active:
+            color = ACCENT_HOVER if self.hover else ACCENT_BLUE
+            text_color = WHITE
+        else:
+            color = (60, 60, 80) if self.hover else BG_CARD
+            text_color = FG_DIM
+        pygame.draw.rect(surface, color, self.rect, border_radius=8)
+        pygame.draw.rect(surface, ACCENT_BLUE if self.active else FG_DIM, self.rect, 2, border_radius=8)
+        text_surf = FONT_SMALL.render(self.text, True, text_color)
+        surface.blit(text_surf, (self.rect.x + (self.rect.width - text_surf.get_width()) // 2,
+                                 self.rect.y + (self.rect.height - text_surf.get_height()) // 2))
+
+    def reset_hover(self):
+        self.hover = False
+
+
 class Button:
     def __init__(self, x, y, w, h, text, color=ACCENT_BLUE, text_color=WHITE, callback=None):
         self.rect = pygame.Rect(x, y, w, h)
@@ -505,12 +535,18 @@ class PasswordManagerApp:
         self.del_back = Button(420, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
         self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
+        self.gen_toggles = {
+            "upper": ToggleButton(100, 270, 110, 34, "ABC", active=True),
+            "lower": ToggleButton(220, 270, 110, 34, "abc", active=True),
+            "digits": ToggleButton(340, 270, 110, 34, "123", active=True),
+            "punctuation": ToggleButton(460, 270, 110, 34, "!@#", active=True),
+        }
         self.gen_display = ""
-        self.strength_meter = StrengthMeter(100, 300, 400, 20)
-        self.gen_button = Button(100, 350, 130, 40, "Generate", callback=self.do_generate)
-        self.gen_copy = Button(245, 350, 110, 40, "Copy", callback=self.do_copy_generated)
-        self.gen_save = Button(370, 350, 150, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
-        self.gen_back = Button(535, 350, 100, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.strength_meter = StrengthMeter(100, 360, 400, 20)
+        self.gen_button = Button(100, 450, 130, 40, "Generate", callback=self.do_generate)
+        self.gen_copy = Button(245, 450, 110, 40, "Copy", callback=self.do_copy_generated)
+        self.gen_save = Button(370, 450, 150, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
+        self.gen_back = Button(535, 450, 100, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
 
     def goto(self, state):
         self.state = state
@@ -520,6 +556,8 @@ class PasswordManagerApp:
         elif state == "GENERATE":
             self.gen_display = ""
             self.strength_meter.set_value(0)
+            for tog in self.gen_toggles.values():
+                tog.reset_hover()
         for btn in self._state_buttons():
             btn.reset_hover()
 
@@ -600,7 +638,14 @@ class PasswordManagerApp:
             self.set_message("Clipboard unavailable", RED)
 
     def do_generate(self):
-        self.gen_display = generate_passwd(self.slider.value)
+        t = self.gen_toggles
+        self.gen_display = generate_passwd(
+            self.slider.value,
+            use_upper=t["upper"].active,
+            use_lower=t["lower"].active,
+            use_digits=t["digits"].active,
+            use_punctuation=t["punctuation"].active,
+        )
         self.strength_meter.set_value(check_passwd_strength(self.gen_display))
 
     def do_copy_generated(self):
@@ -657,6 +702,8 @@ class PasswordManagerApp:
                     self.del_list.handle_event(event)
                 elif self.state == "GENERATE":
                     self.slider.handle_event(event)
+                    for tog in self.gen_toggles.values():
+                        tog.handle_event(event)
                 for btn in self._state_buttons():
                     btn.handle_event(event)
 
@@ -737,8 +784,11 @@ class PasswordManagerApp:
             self.screen.blit(FONT_HEADING.render("Generate Password", True, FG_WHITE), (100, 120))
             self.screen.blit(FONT_BODY.render("Length:", True, FG_WHITE), (100, 175))
             self.slider.draw(self.screen)
+            self.screen.blit(FONT_BODY.render("Include:", True, FG_WHITE), (100, 240))
+            for tog in self.gen_toggles.values():
+                tog.draw(self.screen)
             if self.gen_display:
-                self.screen.blit(FONT_MONO.render("Result: " + self.gen_display, True, FG_WHITE), (100, 260))
+                self.screen.blit(FONT_MONO.render("Result: " + self.gen_display, True, FG_WHITE), (100, 330))
                 self.strength_meter.draw(self.screen)
             self.gen_button.draw(self.screen)
             self.gen_copy.draw(self.screen)
