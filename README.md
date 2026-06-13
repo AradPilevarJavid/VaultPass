@@ -17,9 +17,26 @@ It stores your passwords locally in an encrypted file, protected by a master pas
 
 ## 🚀 Installation
 
+### Option 1: Download ready‑to‑run executable (easiest)
+
+- **Windows**: [VaultPass.exe](https://github.com/AradPilevarJavid/VaultPass/releases/download/v1.0.0/VaultPass.exe)  
+- **Linux**: [Password_Manager-x86_64.AppImage](https://github.com/AradPilevarJavid/VaultPass/releases/download/v1.0.0/Password_Manager-x86_64.AppImage)  
+
+After downloading, run the file. On Linux you may need to make the AppImage executable:
+
+```bash
+chmod +x Password_Manager-x86_64.AppImage
+```
+```bash
+./Password_Manager-x86_64.AppImage
+```
+
+### Option 2: Run from source
 1. **Clone the repository**
    ```bash
     git clone https://github.com/AradPilevarJavid/VaultPass
+   ```
+   ```bash
     cd vaultpass
    ```
 
