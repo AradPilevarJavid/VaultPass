@@ -21,7 +21,7 @@ It stores your passwords locally in an encrypted file, protected by a master pas
    ```bash
     git clone https://github.com/AradPilevarJavid/VaultPass
     cd vaultpass
-```
+   ```
 
 2. **Install dependencies**
    ```bash
