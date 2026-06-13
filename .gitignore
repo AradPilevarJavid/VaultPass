@@ -28,3 +28,10 @@ build/
 # .py files
 project.py
 test_project.py
+
+# the rest
+AppDir/
+Password_Manager-x86_64.AppImage
+appimagetool
+passwordmanager.AppDir/
+passwordmanager.spec
