@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import hashlib
 import secrets
@@ -9,9 +10,17 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 
-PASSWORD_FILE = "passwords.json"
-MASTER_FILE = "master.json"
+def get_data_dir():
+    if sys.platform == "win32":
+        base = os.path.join(os.environ["APPDATA"], "VaultPass")
+    else:
+        base = os.path.join(os.path.expanduser("~"), ".vaultpass")
+    os.makedirs(base, exist_ok=True)
+    return base
 
+DATA_DIR = get_data_dir()
+PASSWORDS_FILE = os.path.join(DATA_DIR, "passwords.json")
+MASTER_FILE = os.path.join(DATA_DIR, "master.json")
 
 def hash_password(password, salt):
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000).hex()
@@ -124,9 +133,9 @@ class Vault:
         if "file_salt" not in record:
             record["file_salt"] = secrets.token_bytes(16).hex()
             _atomic_write_text(MASTER_FILE, json.dumps(record))
-            if os.path.exists(PASSWORD_FILE):
+            if os.path.exists(PASSWORDS_FILE):
                 try:
-                    with open(PASSWORD_FILE, "r") as pf:
+                    with open(PASSWORDS_FILE, "r") as pf:
                         plain = json.load(pf)
                     self._encrypt_passwords(plain, bytes.fromhex(record["file_salt"]))
                 except (json.JSONDecodeError, UnicodeDecodeError):
@@ -138,11 +147,11 @@ class Vault:
         fernet = Fernet(key)
         data = json.dumps(passwords).encode()
         token = fernet.encrypt(data)
-        _atomic_write_bytes(PASSWORD_FILE, token)
+        _atomic_write_bytes(PASSWORDS_FILE, token)
 
     def _decrypt_passwords(self, salt):
         try:
-            with open(PASSWORD_FILE, "rb") as f:
+            with open(PASSWORDS_FILE, "rb") as f:
                 token = f.read()
         except FileNotFoundError:
             return {}
