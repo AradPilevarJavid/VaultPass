@@ -653,9 +653,9 @@ class PasswordManagerApp:
 
         y = 110
 
-        self.length_label_pos = (margin, y)
+        self.length_label_pos = (margin, y + 25)
         y += 25
-        self.slider.rect.topleft = (margin, y)
+        self.slider.rect.topleft = (margin, y + 25)
         self.slider.rect.size = (w - 2 * margin - 90, 16)
         self.slider.update_handle_pos()
         y = self.slider.rect.bottom + gap
