@@ -9,7 +9,6 @@ from core import (
 
 pygame.init()
 
-
 BG_DEEP = (24, 24, 38)
 BG_CARD = (36, 36, 54)
 FG_WHITE = (230, 230, 240)
@@ -21,7 +20,10 @@ GREEN = (80, 200, 120)
 YELLOW = (255, 200, 50)
 WHITE = (255, 255, 255)
 
-WIDTH, HEIGHT = 900, 650
+WIDTH = 900
+HEIGHT = 650
+MIN_WIDTH = 700
+MIN_HEIGHT = 500
 FPS = 30
 
 
@@ -41,7 +43,7 @@ FONT_MONO = pygame.font.SysFont("Consolas", 18) if sys.platform == "win32" else 
 
 
 class TextInput:
-    def __init__(self, x, y, w, h, placeholder="", password=False):
+    def __init__(self, x, y, w, h, placeholder="", password=False, font=FONT_BODY):
         self.rect = pygame.Rect(x, y, w, h)
         self.text = ""
         self.placeholder = placeholder
@@ -51,6 +53,7 @@ class TextInput:
         self.cursor_timer = 0
         self.cursor = 0
         self.sel_anchor = None
+        self.font = font
 
     def _display_string(self):
         if self.password:
@@ -81,13 +84,12 @@ class TextInput:
         return True
 
     def _index_from_x(self, mouse_x):
-        font = FONT_BODY
         display = self._display_string()
         rel = mouse_x - (self.rect.x + 8)
         best_i = 0
         best_dist = abs(rel)
         for i in range(1, len(display) + 1):
-            x = font.size(display[:i])[0]
+            x = self.font.size(display[:i])[0]
             dist = abs(rel - x)
             if dist < best_dist:
                 best_dist = dist
@@ -182,9 +184,9 @@ class TextInput:
 
         display = self._display_string()
         if not self.text and not self.active:
-            text_surf = FONT_BODY.render(self.placeholder, True, FG_DIM)
+            text_surf = self.font.render(self.placeholder, True, FG_DIM)
         else:
-            text_surf = FONT_BODY.render(display, True, FG_WHITE)
+            text_surf = self.font.render(display, True, FG_WHITE)
 
         clip = surface.get_clip()
         surface.set_clip(self.rect)
@@ -193,8 +195,8 @@ class TextInput:
         rng = self._selection_range()
         if self.active and rng is not None:
             lo, hi = rng
-            x1 = self.rect.x + 8 + FONT_BODY.size(display[:lo])[0]
-            x2 = self.rect.x + 8 + FONT_BODY.size(display[:hi])[0]
+            x1 = self.rect.x + 8 + self.font.size(display[:lo])[0]
+            x2 = self.rect.x + 8 + self.font.size(display[:hi])[0]
             sel_rect = pygame.Rect(x1, self.rect.y + 6, x2 - x1, self.rect.h - 12)
             pygame.draw.rect(surface, ACCENT_BLUE, sel_rect)
 
@@ -204,7 +206,7 @@ class TextInput:
             surface.blit(text_surf, (self.rect.x + 8, text_y))
 
         if self.active and self.cursor_visible:
-            cursor_x = self.rect.x + 8 + FONT_BODY.size(display[:self.cursor])[0]
+            cursor_x = self.rect.x + 8 + self.font.size(display[:self.cursor])[0]
             pygame.draw.line(surface, FG_WHITE,
                              (cursor_x, self.rect.y + 8),
                              (cursor_x, self.rect.y + self.rect.h - 8), 2)
@@ -220,16 +222,16 @@ class TextInput:
         self.sel_anchor = None
 
     def toggle_password_visibility(self):
-        """Flip between hidden (•••) and shown text."""
         self.password = not self.password
 
 
 class ToggleButton:
-    def __init__(self, x, y, w, h, text, active=True):
+    def __init__(self, x, y, w, h, text, active=True, font=FONT_SMALL):
         self.rect = pygame.Rect(x, y, w, h)
         self.text = text
         self.active = active
         self.hover = False
+        self.font = font
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEMOTION:
@@ -246,7 +248,7 @@ class ToggleButton:
             text_color = FG_DIM
         pygame.draw.rect(surface, color, self.rect, border_radius=8)
         pygame.draw.rect(surface, ACCENT_BLUE if self.active else FG_DIM, self.rect, 2, border_radius=8)
-        text_surf = FONT_SMALL.render(self.text, True, text_color)
+        text_surf = self.font.render(self.text, True, text_color)
         surface.blit(text_surf, (self.rect.x + (self.rect.width - text_surf.get_width()) // 2,
                                  self.rect.y + (self.rect.height - text_surf.get_height()) // 2))
 
@@ -255,7 +257,7 @@ class ToggleButton:
 
 
 class Button:
-    def __init__(self, x, y, w, h, text, color=ACCENT_BLUE, text_color=WHITE, callback=None):
+    def __init__(self, x, y, w, h, text, color=ACCENT_BLUE, text_color=WHITE, callback=None, font=FONT_BODY):
         self.rect = pygame.Rect(x, y, w, h)
         self.text = text
         self.color = color
@@ -264,6 +266,7 @@ class Button:
         self.callback = callback
         self.hover = False
         self.click_scale = 1.0
+        self.font = font
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEMOTION:
@@ -282,7 +285,7 @@ class Button:
         y = self.rect.y + (self.rect.height - h) // 2
         color = self.hover_color if self.hover else self.color
         pygame.draw.rect(surface, color, (x, y, w, h), border_radius=10)
-        text_surf = FONT_BODY.render(self.text, True, self.text_color)
+        text_surf = self.font.render(self.text, True, self.text_color)
         surface.blit(text_surf, (x + (w - text_surf.get_width()) // 2,
                                  y + (h - text_surf.get_height()) // 2))
 
@@ -302,6 +305,7 @@ class Slider:
         self.value = init_val
         self.dragging = False
         self.update_handle_pos()
+        self.label_font = FONT_SMALL
 
     def update_handle_pos(self):
         ratio = (self.value - self.min) / (self.max - self.min)
@@ -338,7 +342,7 @@ class Slider:
         pygame.draw.rect(surface, handle_color, self.handle_rect, border_radius=6)
         pygame.draw.rect(surface, WHITE, self.handle_rect, 2, border_radius=6)
         percent = int((self.value - self.min) / (self.max - self.min) * 100)
-        label = FONT_SMALL.render(f"{self.value} ({percent}%)", True, FG_WHITE)
+        label = self.label_font.render(f"{self.value} ({percent}%)", True, FG_WHITE)
         surface.blit(label, (self.rect.x + self.rect.width + 12, self.rect.y - 4))
 
 
@@ -346,6 +350,7 @@ class StrengthMeter:
     def __init__(self, x, y, w, h):
         self.rect = pygame.Rect(x, y, w, h)
         self.percentage = 0
+        self.label_font = FONT_SMALL
 
     def set_value(self, percent):
         self.percentage = max(0, min(100, percent))
@@ -364,17 +369,19 @@ class StrengthMeter:
             fill_rect = pygame.Rect(self.rect.x, self.rect.y, fill_w, self.rect.height)
             pygame.draw.rect(surface, color, fill_rect, border_radius=4)
         pygame.draw.rect(surface, FG_DIM, self.rect, 1, border_radius=4)
-        label = FONT_SMALL.render(f"{self.percentage}%", True, FG_WHITE)
+        label = self.label_font.render(f"{self.percentage}%", True, FG_WHITE)
         surface.blit(label, (self.rect.x + self.rect.width + 12, self.rect.y - 2))
 
 
 class ScrollableList:
-    def __init__(self, x, y, w, h, item_height=35):
+    def __init__(self, x, y, w, h, item_height=35, body_font=FONT_BODY, mono_font=FONT_MONO):
         self.rect = pygame.Rect(x, y, w, h)
         self.items = []
         self.item_height = item_height
         self.scroll = 0
         self.scrollbar_dragging = False
+        self.body_font = body_font
+        self.mono_font = mono_font
 
     def set_items(self, items):
         self.items = items
@@ -440,12 +447,12 @@ class ScrollableList:
             pygame.draw.rect(surface, row_color, (self.rect.x, y, self.rect.width, self.item_height))
             if ":" in item:
                 service, pwd = item.split(":", 1)
-                serv_text = FONT_BODY.render(service.strip(), True, FG_WHITE)
-                pwd_text = FONT_MONO.render(pwd.strip(), True, FG_DIM)
+                serv_text = self.body_font.render(service.strip(), True, FG_WHITE)
+                pwd_text = self.mono_font.render(pwd.strip(), True, FG_DIM)
                 surface.blit(serv_text, (self.rect.x + 10, y + 5))
                 surface.blit(pwd_text, (self.rect.x + 200, y + 5))
             else:
-                txt = FONT_BODY.render(item, True, FG_WHITE)
+                txt = self.body_font.render(item, True, FG_WHITE)
                 surface.blit(txt, (self.rect.x + 10, y + 5))
         surface.set_clip(old_clip)
         total_h = len(self.items) * self.item_height
@@ -455,8 +462,8 @@ class ScrollableList:
 
 
 class SelectableList(ScrollableList):
-    def __init__(self, x, y, w, h, item_height=40):
-        super().__init__(x, y, w, h, item_height)
+    def __init__(self, x, y, w, h, item_height=40, body_font=FONT_BODY, mono_font=FONT_MONO):
+        super().__init__(x, y, w, h, item_height, body_font, mono_font)
         self.selected_index = -1
 
     def handle_event(self, event):
@@ -490,7 +497,7 @@ class SelectableList(ScrollableList):
             else:
                 color = BG_DEEP if i % 2 == 0 else BG_CARD
             pygame.draw.rect(surface, color, row_rect)
-            txt = FONT_BODY.render(item, True, FG_WHITE)
+            txt = self.body_font.render(item, True, FG_WHITE)
             surface.blit(txt, (self.rect.x + 15, y + (self.item_height - txt.get_height()) // 2))
         surface.set_clip(old_clip)
         total_h = len(self.items) * self.item_height
@@ -501,55 +508,184 @@ class SelectableList(ScrollableList):
 
 class PasswordManagerApp:
     def __init__(self, vault=None):
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+        pygame.init()
+        self.width = WIDTH
+        self.height = HEIGHT
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         pygame.display.set_caption(" VaultPass")
         self.clock = pygame.time.Clock()
         self.running = True
-        self.vault = None
+        self.vault = vault
         self.state = "LOGIN"
         self.message = ""
         self.message_timer = 0
         self.message_color = FG_WHITE
 
-        self.master_input = TextInput(WIDTH//2 - 150, 280, 300, 40, "Master Password", password=True)
-        self.confirm_input = TextInput(WIDTH//2 - 150, 340, 300, 40, "Confirm Password", password=True)
-        self.login_btn = Button(WIDTH//2 - 75, 400, 150, 40, "Login", callback=self.do_login)
-        self.setup_btn = Button(WIDTH//2 - 75, 400, 150, 40, "Create Vault", callback=self.do_setup)
-        self.create_shortcut_btn = Button(WIDTH//2 - 75, 440, 150, 40, "Create Vault", color=BG_CARD, text_color=ACCENT_BLUE, callback=lambda: self.goto("SETUP"))
+        self.build_widgets()
+        self.layout()
 
-        self.add_btn = Button(WIDTH//2 - 120, 180, 240, 50, "Add Password", callback=lambda: self.goto("ADD"))
-        self.del_btn = Button(WIDTH//2 - 120, 250, 240, 50, "Manage Saved Passwords", callback=lambda: self.goto("DELETE"))
-        self.gen_btn = Button(WIDTH//2 - 120, 320, 240, 50, "Generate Password", callback=lambda: self.goto("GENERATE"))
-        self.quit_btn = Button(WIDTH//2 - 120, 480, 240, 50, "Quit", color=RED, callback=self.quit)
+    def build_widgets(self):
+        self.title_font = FONT_TITLE
+        self.heading_font = FONT_HEADING
+        self.body_font = FONT_BODY
+        self.small_font = FONT_SMALL
+        self.mono_font = FONT_MONO
 
-        self.add_service = TextInput(100, 180, 320, 40, "Service name")
-        self.add_password = TextInput(100, 250, 320, 40, "Password", password=True)
-        self.add_save = Button(100, 320, 140, 40, "Save", callback=self.do_add)
-        self.add_back = Button(260, 320, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
-        self.add_show_pw_btn = Button(430, 250, 60, 40, "Show", color=BG_CARD, text_color=FG_WHITE,
-                                      callback=self.toggle_add_password_visibility)
+        self.master_input = TextInput(0, 0, 300, 44, "Master Password", password=True, font=self.body_font)
+        self.confirm_input = TextInput(0, 0, 300, 44, "Confirm Password", password=True, font=self.body_font)
+        self.login_btn = Button(0, 0, 150, 44, "Unlock", callback=self.do_login, font=self.body_font)
+        self.setup_btn = Button(0, 0, 150, 44, "Create Vault", callback=self.do_setup, font=self.body_font)
+        self.create_shortcut_btn = Button(0, 0, 150, 44, "Create Vault", color=BG_CARD, text_color=ACCENT_BLUE,
+                                          callback=lambda: self.goto("SETUP"), font=self.body_font)
 
-        self.del_search = TextInput(100, 150, 400, 36, placeholder="Search service...")
-        self.del_list = SelectableList(100, 200, 400, 270)
-        self.del_confirm = Button(100, 480, 140, 40, "Delete", color=RED, callback=self.do_delete)
-        self.del_copy = Button(260, 480, 140, 40, "Copy", callback=self.do_copy_selected)
-        self.del_back = Button(420, 480, 140, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.add_btn = Button(0, 0, 240, 50, "Add Password", callback=lambda: self.goto("ADD"), font=self.body_font)
+        self.del_btn = Button(0, 0, 240, 50, "Manage Saved Passwords", callback=lambda: self.goto("DELETE"),
+                              font=self.body_font)
+        self.gen_btn = Button(0, 0, 240, 50, "Generate Password", callback=lambda: self.goto("GENERATE"),
+                              font=self.body_font)
+        self.quit_btn = Button(0, 0, 240, 50, "Quit", color=RED, callback=self.quit, font=self.body_font)
+
+        self.add_service = TextInput(0, 0, 320, 44, "Service name", font=self.body_font)
+        self.add_password = TextInput(0, 0, 320, 44, "Password", password=True, font=self.body_font)
+        self.add_save = Button(0, 0, 140, 44, "Save", callback=self.do_add, font=self.body_font)
+        self.add_back = Button(0, 0, 140, 44, "Back", color=BG_CARD, text_color=FG_WHITE,
+                               callback=lambda: self.goto("MAIN"), font=self.body_font)
+        self.add_show_pw_btn = Button(0, 0, 60, 44, "Show", color=BG_CARD, text_color=FG_WHITE,
+                                      callback=self.toggle_add_password_visibility, font=self.body_font)
+
+        self.del_search = TextInput(0, 0, 400, 36, placeholder="Search service...", font=self.body_font)
+        self.del_list = SelectableList(0, 0, 400, 270, body_font=self.body_font, mono_font=self.mono_font)
+        self.del_confirm = Button(0, 0, 140, 44, "Delete", color=RED, callback=self.do_delete, font=self.body_font)
+        self.del_copy = Button(0, 0, 140, 44, "Copy", callback=self.do_copy_selected, font=self.body_font)
+        self.del_back = Button(0, 0, 140, 44, "Back", color=BG_CARD, text_color=FG_WHITE,
+                               callback=lambda: self.goto("MAIN"), font=self.body_font)
         self.del_all_items = []
         self._del_last_query = ""
 
-        self.slider = Slider(100, 200, 400, min_val=4, max_val=32, init_val=16)
+        self.slider = Slider(0, 0, 400, min_val=4, max_val=32, init_val=16)
         self.gen_toggles = {
-            "upper": ToggleButton(100, 270, 110, 34, "ABC", active=True),
-            "lower": ToggleButton(220, 270, 110, 34, "abc", active=True),
-            "digits": ToggleButton(340, 270, 110, 34, "123", active=True),
-            "punctuation": ToggleButton(460, 270, 110, 34, "!@#", active=True),
+            "upper": ToggleButton(0, 0, 110, 34, "ABC", active=True, font=self.small_font),
+            "lower": ToggleButton(0, 0, 110, 34, "abc", active=True, font=self.small_font),
+            "digits": ToggleButton(0, 0, 110, 34, "123", active=True, font=self.small_font),
+            "punctuation": ToggleButton(0, 0, 110, 34, "!@#", active=True, font=self.small_font),
         }
         self.gen_display = ""
-        self.strength_meter = StrengthMeter(100, 360, 400, 20)
-        self.gen_button = Button(100, 450, 130, 40, "Generate", callback=self.do_generate)
-        self.gen_copy = Button(245, 450, 110, 40, "Copy", callback=self.do_copy_generated)
-        self.gen_save = Button(370, 450, 150, 40, "Save to Vault", color=GREEN, callback=self.do_save_generated)
-        self.gen_back = Button(535, 450, 100, 40, "Back", color=BG_CARD, text_color=FG_WHITE, callback=lambda: self.goto("MAIN"))
+        self.strength_meter = StrengthMeter(0, 0, 400, 20)
+        self.gen_button = Button(0, 0, 130, 44, "Generate", callback=self.do_generate, font=self.body_font)
+        self.gen_copy = Button(0, 0, 110, 44, "Copy", callback=self.do_copy_generated, font=self.body_font)
+        self.gen_save = Button(0, 0, 150, 44, "Save to Vault", color=GREEN, callback=self.do_save_generated,
+                               font=self.body_font)
+        self.gen_back = Button(0, 0, 100, 44, "Back", color=BG_CARD, text_color=FG_WHITE,
+                               callback=lambda: self.goto("MAIN"), font=self.body_font)
+
+    def layout(self):
+        w, h = self.width, self.height
+        cx = w // 2
+        margin = 40
+        gap = 55
+
+        card_w, card_h = 400, 320
+        self.card_rect = pygame.Rect(cx - card_w // 2, 200, card_w, card_h)
+        self.title_pos = (cx, 30 + self.title_font.get_height() // 2)
+        self.subtitle_y = self.card_rect.top + 10
+
+        self.master_input.rect.size = (300, 44)
+        self.master_input.rect.centerx = cx
+        self.master_input.rect.top = self.card_rect.top + 55
+
+        self.confirm_input.rect.size = (300, 44)
+        self.confirm_input.rect.centerx = cx
+        self.confirm_input.rect.top = self.master_input.rect.bottom + 15
+
+        self.login_btn.rect.size = (150, 44)
+        self.login_btn.rect.centerx = cx
+        self.login_btn.rect.top = self.master_input.rect.bottom + 20
+
+        self.setup_btn.rect.size = (150, 44)
+        self.setup_btn.rect.centerx = cx
+        self.setup_btn.rect.top = self.confirm_input.rect.bottom + 15
+
+        self.create_shortcut_btn.rect.size = (150, 44)
+        self.create_shortcut_btn.rect.centerx = cx
+        self.create_shortcut_btn.rect.top = self.login_btn.rect.bottom + 5
+
+        btn_w, btn_h = 240, 50
+        start_y = 180
+        spacing = 25
+        btns = [self.add_btn, self.del_btn, self.gen_btn, self.quit_btn]
+        for i, btn in enumerate(btns):
+            btn.rect.size = (btn_w, btn_h)
+            btn.rect.centerx = cx
+            btn.rect.top = start_y + i * (btn_h + spacing)
+
+        left_col = cx - 200
+        self.add_service.rect.topleft = (left_col, 180)
+        self.add_service.rect.size = (320, 44)
+
+        self.add_password.rect.topleft = (left_col, self.add_service.rect.bottom + 20)
+        self.add_password.rect.size = (320, 44)
+
+        self.add_show_pw_btn.rect.midleft = (self.add_password.rect.right + 10, self.add_password.rect.centery)
+        self.add_show_pw_btn.rect.size = (60, 44)
+
+        self.add_save.rect.topleft = (left_col, self.add_password.rect.bottom + 30)
+        self.add_save.rect.size = (140, 44)
+
+        self.add_back.rect.topleft = (left_col + 160, self.add_password.rect.bottom + 30)
+        self.add_back.rect.size = (140, 44)
+
+        self.del_search.rect.topleft = (margin, 150)
+        self.del_search.rect.size = (w - 2 * margin, 36)
+
+        list_top = self.del_search.rect.bottom + 10
+        list_height = h - list_top - 80
+        self.del_list.rect = pygame.Rect(margin, list_top, w - 2 * margin, list_height)
+        self.del_list.item_height = 40
+
+        bw = 140
+        by = self.del_list.rect.bottom + 10
+        self.del_confirm.rect.size = (bw, 44)
+        self.del_confirm.rect.topleft = (margin, by)
+        self.del_copy.rect.size = (bw, 44)
+        self.del_copy.rect.topleft = (margin + bw + 15, by)
+        self.del_back.rect.size = (bw, 44)
+        self.del_back.rect.topright = (w - margin, by)
+
+        y = 110
+
+        self.length_label_pos = (margin, y)
+        y += 25
+        self.slider.rect.topleft = (margin, y)
+        self.slider.rect.size = (w - 2 * margin - 90, 16)
+        self.slider.update_handle_pos()
+        y = self.slider.rect.bottom + gap
+
+        self.include_label_pos = (margin, y)
+        y += 25
+        toggle_w, toggle_gap = 110, 15
+        for i, key in enumerate(["upper", "lower", "digits", "punctuation"]):
+            btn = self.gen_toggles[key]
+            btn.rect.size = (toggle_w, 34)
+            btn.rect.topleft = (margin + i * (toggle_w + toggle_gap), y)
+        y += 34 + gap
+
+        self.result_label_pos = (margin, y)
+        y += 25
+        self.result_text_y = y
+        y += self.body_font.get_height() + gap
+
+        self.strength_meter.rect.topleft = (margin, y)
+        self.strength_meter.rect.size = (w - 2 * margin - 90, 20)
+
+        by = h - margin - 44
+        self.gen_button.rect.topleft = (margin, by)
+        self.gen_copy.rect.topleft = (self.gen_button.rect.right + 15, by)
+        self.gen_save.rect.topleft = (self.gen_copy.rect.right + 15, by)
+        self.gen_back.rect.topright = (w - margin, by)
+
+        self.status_pos = (cx, h - 40)
+
+        self.del_list._clamp_scroll()
 
     def goto(self, state):
         self.state = state
@@ -681,12 +817,8 @@ class PasswordManagerApp:
         self.add_show_pw_btn.text = "Show"
 
     def toggle_add_password_visibility(self):
-        """Flip the password field between hidden and shown, update the button label."""
         self.add_password.toggle_password_visibility()
-        if self.add_password.password:
-            self.add_show_pw_btn.text = "Show"
-        else:
-            self.add_show_pw_btn.text = "Hide"
+        self.add_show_pw_btn.text = "Hide" if not self.add_password.password else "Show"
 
     def set_message(self, msg, color=FG_WHITE):
         self.message = msg
@@ -703,6 +835,13 @@ class PasswordManagerApp:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
+
+                elif event.type == pygame.VIDEORESIZE:
+                    self.width = max(event.w, MIN_WIDTH)
+                    self.height = max(event.h, MIN_HEIGHT)
+                    self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                    self.layout()
+
                 if self.state in ("LOGIN", "SETUP"):
                     self.master_input.handle_event(event)
                     if self.state == "SETUP":
@@ -722,6 +861,7 @@ class PasswordManagerApp:
                     self.slider.handle_event(event)
                     for tog in self.gen_toggles.values():
                         tog.handle_event(event)
+
                 for btn in self._state_buttons():
                     btn.handle_event(event)
 
@@ -735,6 +875,7 @@ class PasswordManagerApp:
                 self.message_timer -= 1
                 if self.message_timer == 0:
                     self.message = ""
+
             self.draw()
             pygame.display.flip()
         pygame.quit()
@@ -758,24 +899,34 @@ class PasswordManagerApp:
             return [self.gen_button, self.gen_copy, self.gen_save, self.gen_back]
         return []
 
+    def draw_centered(self, surface, text, font, color, center):
+        surf = font.render(text, True, color)
+        rect = surf.get_rect(center=center)
+        surface.blit(surf, rect)
+
     def draw(self):
         self.screen.fill(BG_DEEP)
-        title = FONT_TITLE.render(" VaultPass", True, ACCENT_BLUE)
-        self.screen.blit(title, (WIDTH//2 - title.get_width()//2, 30))
+        margin = 40
+
+        self.draw_centered(self.screen, " VaultPass", self.title_font, ACCENT_BLUE, self.title_pos)
 
         if self.state in ("LOGIN", "SETUP"):
-            pygame.draw.rect(self.screen, BG_CARD, (WIDTH//2 - 200, 200, 400, 280 if self.state == "SETUP" else 300), border_radius=16)
+            pygame.draw.rect(self.screen, BG_CARD, self.card_rect, border_radius=16)
+
             sub = "Enter master password" if self.state == "LOGIN" else "Create master password"
-            sub_text = FONT_HEADING.render(sub, True, FG_WHITE)
-            self.screen.blit(sub_text, (WIDTH//2 - sub_text.get_width()//2, 210))
+            self.draw_centered(self.screen, sub, self.heading_font, FG_WHITE,
+                               (self.width // 2, self.card_rect.top + 30))
+
             self.master_input.draw(self.screen)
             if self.state == "SETUP":
                 self.confirm_input.draw(self.screen)
+
             if self.state == "LOGIN":
                 self.login_btn.draw(self.screen)
                 if not Vault.is_master_created():
-                    hint = FONT_SMALL.render("No vault found.", True, FG_DIM)
-                    self.screen.blit(hint, (WIDTH//2 - hint.get_width()//2, 460))
+                    hint = self.small_font.render("No vault found.", True, FG_DIM)
+                    hint_rect = hint.get_rect(center=(self.width // 2, self.create_shortcut_btn.rect.bottom + 20))
+                    self.screen.blit(hint, hint_rect)
                     self.create_shortcut_btn.draw(self.screen)
             else:
                 self.setup_btn.draw(self.screen)
@@ -785,7 +936,8 @@ class PasswordManagerApp:
                 b.draw(self.screen)
 
         elif self.state == "ADD":
-            self.screen.blit(FONT_HEADING.render("Add New Password", True, FG_WHITE), (100, 120))
+            self.draw_centered(self.screen, "Add New Password", self.heading_font, FG_WHITE,
+                               (self.width // 2, 120))
             self.add_service.draw(self.screen)
             self.add_password.draw(self.screen)
             self.add_show_pw_btn.draw(self.screen)
@@ -793,7 +945,8 @@ class PasswordManagerApp:
             self.add_back.draw(self.screen)
 
         elif self.state == "DELETE":
-            self.screen.blit(FONT_HEADING.render("Manage Saved Passwords", True, FG_WHITE), (100, 110))
+            self.draw_centered(self.screen, "Manage Saved Passwords", self.heading_font, FG_WHITE,
+                               (self.width // 2, 110))
             self.del_search.draw(self.screen)
             self.del_list.draw(self.screen)
             self.del_confirm.draw(self.screen)
@@ -801,24 +954,33 @@ class PasswordManagerApp:
             self.del_back.draw(self.screen)
 
         elif self.state == "GENERATE":
-            self.screen.blit(FONT_HEADING.render("Generate Password", True, FG_WHITE), (100, 120))
-            self.screen.blit(FONT_BODY.render("Length:", True, FG_WHITE), (100, 175))
+            self.draw_centered(self.screen, "Generate Password", self.heading_font, FG_WHITE,
+                               (self.width // 2, 120))
+
+            self.screen.blit(self.body_font.render("Length:", True, FG_WHITE), self.length_label_pos)
             self.slider.draw(self.screen)
-            self.screen.blit(FONT_BODY.render("Include:", True, FG_WHITE), (100, 240))
+
+            self.screen.blit(self.body_font.render("Include:", True, FG_WHITE), self.include_label_pos)
             for tog in self.gen_toggles.values():
                 tog.draw(self.screen)
+
+            self.screen.blit(self.body_font.render("Result:", True, FG_WHITE), self.result_label_pos)
             if self.gen_display:
-                self.screen.blit(FONT_MONO.render("Result: " + self.gen_display, True, FG_WHITE), (100, 330))
+                result_text = self.mono_font.render(self.gen_display, True, FG_WHITE)
+                self.screen.blit(result_text, (margin, self.result_text_y))
                 self.strength_meter.draw(self.screen)
+
             self.gen_button.draw(self.screen)
             self.gen_copy.draw(self.screen)
             self.gen_save.draw(self.screen)
             self.gen_back.draw(self.screen)
 
         if self.message and self.message_timer > 0:
-            msg_surf = FONT_BODY.render(self.message, True, self.message_color)
-            pygame.draw.rect(self.screen, (0, 0, 0), (WIDTH//2 - msg_surf.get_width()//2 - 10, HEIGHT - 70, msg_surf.get_width() + 20, 40), border_radius=8)
-            self.screen.blit(msg_surf, (WIDTH//2 - msg_surf.get_width()//2, HEIGHT - 62))
+            msg_surf = self.body_font.render(self.message, True, self.message_color)
+            bg_rect = msg_surf.get_rect(center=self.status_pos)
+            bg_rect.inflate_ip(20, 10)
+            pygame.draw.rect(self.screen, (0, 0, 0), bg_rect, border_radius=8)
+            self.screen.blit(msg_surf, msg_surf.get_rect(center=self.status_pos))
 
 
 def run_gui(vault=None):
