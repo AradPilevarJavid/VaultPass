@@ -6,7 +6,6 @@ passwords.json
 
 # Python environment and cache
 venv/
-Cs50P_Project_venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -25,3 +24,7 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# .py files
+project.py
+test_project.py
