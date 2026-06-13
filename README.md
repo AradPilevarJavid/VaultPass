@@ -111,4 +111,4 @@ This project is licensed under the MIT License – see the [LICENSE](LICENSE) fi
 ---
 Enjoy safe and simple password management! 🔐
 
-*Made with ❤️ by Arad Pilevar Javid*
+*Made with 🤍 by Arad Pilevar Javid*
