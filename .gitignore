@@ -35,3 +35,6 @@ Password_Manager-x86_64.AppImage
 appimagetool
 passwordmanager.AppDir/
 passwordmanager.spec
+
+# videos
+VaultPass_demo.mp4
