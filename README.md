@@ -4,6 +4,8 @@
 VaultPass is a simple, offline password manager with a graphical interface built in Python.  
 It stores your passwords locally in an encrypted file, protected by a master password.
 
+![VaultPass Demo](vaultpass_demo.gif)
+
 ## ✨ Features
 
 - **Master password protection** – Unlock your vault with a single strong password.
