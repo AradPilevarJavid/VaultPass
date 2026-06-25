@@ -123,6 +123,8 @@ VaultPass/
 
 - Python 3.8 or higher
 - Dependencies listed in `requirements.txt`
+## Roadmap
+- [ ] Add a rename service button in the manage saved passwords
 
 ## 📄 License
 
