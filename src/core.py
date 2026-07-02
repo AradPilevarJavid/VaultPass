@@ -10,6 +10,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 
+
 def get_data_dir():
     if sys.platform == "win32":
         base = os.path.join(os.environ["APPDATA"], "VaultPass")
@@ -18,18 +19,21 @@ def get_data_dir():
     os.makedirs(base, exist_ok=True)
     return base
 
+
 DATA_DIR = get_data_dir()
 PASSWORDS_FILE = os.path.join(DATA_DIR, "passwords.json")
 MASTER_FILE = os.path.join(DATA_DIR, "master.json")
+
 
 def hash_password(password, salt):
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100000).hex()
 
 
-def generate_passwd(length, use_upper=True, use_lower=True,
-                    use_digits=True, use_punctuation=True):
+def generate_passwd(
+    length, use_upper=True, use_lower=True, use_digits=True, use_punctuation=True
+):
     """Generate a password of given length from selected character sets."""
-    chars = ''
+    chars = ""
     if use_upper:
         chars += string.ascii_uppercase
     if use_lower:
@@ -83,7 +87,7 @@ def _atomic_write_bytes(path, data):
 
 def _atomic_write_text(path, text):
     """Atomic write of a string (encode to UTF-8 bytes)."""
-    _atomic_write_bytes(path, text.encode('utf-8'))
+    _atomic_write_bytes(path, text.encode("utf-8"))
 
 
 class Vault:
